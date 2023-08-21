@@ -3,6 +3,14 @@
 
 Build and run workflows at any scale. Graph-and-Parser is a python-based framework that allows for the intuitive creation of workflows and data projects as Directed Acyclic Graphs (DAGs). Run worfklows efficient either locally in an IDE or on a large scale powered by Kubernetes.
 
+Our promise for machine learning:
+- More than 1000x faster training of models than on a local workstation.
+- Fully solve training bottlenecks by distributing workloads in the cloud.
+- Efficient and simple coding of machine learning pipelines.
+- Train huge neural networks like GPT models efficiently in a Kubernetes cluster.
+- Save development time and cost by reusing large parts of your code. Simply program in your IDE and have a one click deploy into a cluster.
+  
+
 ## Features
 <ul>
   <li>Intuitive DAG-based data workflow creation using Python code</li>
