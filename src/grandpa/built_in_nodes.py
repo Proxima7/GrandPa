@@ -270,3 +270,12 @@ class ResultWrapperNode(Node):
 
     def run(self, **params):
         return {name: value for name, value in params.items()}
+
+
+class GrandMLWrapperNode(Node):
+    def __init__(self, *args, node_location: str, address, main_router, **kwargs):
+        super().__init__(address, main_router)
+        self.execute_node = do_import(node_location)(*args, **kwargs)
+
+    def run(self, *args, **kwargs):
+        return self.execute_node(*args, **kwargs)
