@@ -63487,5 +63487,5 @@ def get_char_map_fallback():
         "\uf7fc": 32,
         "\uf7fd": 32,
         "\uf7fe": 16,
-        "\uf7ff": 16
+        "\uf7ff": 16,
     }

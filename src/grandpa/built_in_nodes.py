@@ -1,7 +1,7 @@
 import json
 import os
-from concurrent.futures.thread import ThreadPoolExecutor
 import threading
+from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Union
 
 from grandpa.node import Node
@@ -13,7 +13,10 @@ class SettingNode(Node):
     This class can be used to create a node that validates a user setting. Requires a SettingReaderNode as
     param 'settings'.
     """
-    def __init__(self, setting, default=None, setting_type=None, val_func=None, **kwargs):
+
+    def __init__(
+        self, setting, default=None, setting_type=None, val_func=None, **kwargs
+    ):
         self.setting = setting
         self.default = default
         self.setting_type = setting_type
@@ -84,6 +87,7 @@ class SettingReaderNode(Node):
     """
     This class will read the Settings.
     """
+
     def __init__(self, setting_path: Union[dict, str], **kwargs):
         self.__init_settings(setting_path)
         super().__init__(**kwargs)
@@ -104,8 +108,10 @@ class SettingReaderNode(Node):
         elif type(setting_path) is dict:
             self.framework_settings = setting_path
         else:
-            raise NotImplementedError(f'Type {type(setting_path)} is not implemented, it must be either dict or '
-                                      f'string.')
+            raise NotImplementedError(
+                f'Type {type(setting_path)} is not implemented, it must be either dict or '
+                f'string.'
+            )
 
     def __read_setting_from_file(self, setting_path: str):
         """
@@ -148,10 +154,12 @@ class SettingReaderNode(Node):
         Returns:
             Settings value for the given settings path.
         """
-        assert hasattr(self, 'settings'), 'Something must have gone horribly wrong, since your SettingReaderNode is ' \
-                                          'lacking the "settings" attribute that should always be created at init. ' \
-                                          'As this is most likely a source code problem, please check the code and ' \
-                                          'contact the developers.'
+        assert hasattr(self, 'settings'), (
+            'Something must have gone horribly wrong, since your SettingReaderNode is '
+            'lacking the "settings" attribute that should always be created at init. '
+            'As this is most likely a source code problem, please check the code and '
+            'contact the developers.'
+        )
         return self.__parse_dict_reference(params['setting'])
 
 
@@ -160,6 +168,7 @@ class QueueWrapper(Node):
     Wraps a node as queue. Will constantly generate data until a upper limit (based on pc specs) is reached using the
     framework multiprocessing. Calling this node will return an entry from the queue.
     """
+
     def __init__(self, target_node, **kwargs):
         super().__init__(**kwargs)
         self.worker_queue = self.switch.add_worker_queue(target=target_node)
@@ -174,6 +183,7 @@ class FuncExecNode(Node):
     required for the function need to be passed at call, either directly (call with params) or via nodes
     (self.add_node(name, node)).
     """
+
     def __init__(self, func, **kwargs):
         if not callable(func):
             func = do_import(func)
@@ -190,6 +200,7 @@ class FuncCacheNode(Node):
     This Node wraps a function the same way as FuncExecNode, except it only calls the function once and caches the
     result.
     """
+
     def __init__(self, func, **kwargs):
         self.func = func
         self.value = None
@@ -209,6 +220,7 @@ class ThreadedMultiNode(Node):
     This node can be used to call another node multiple times with different parameters in parallel (threading).
     Deprecated.
     """
+
     def __init__(self, node, **kwargs):
         self.node = node
         super().__init__(**kwargs)
@@ -226,6 +238,7 @@ class ListWrapperNode(Node):
     """
     This node can be used to wrap a list as a node.
     """
+
     def __init__(self, sub_nodes: list, **kwargs):
         self.sub_nodes = sub_nodes
         super().__init__(**kwargs)
@@ -252,6 +265,7 @@ class ValueWrapperNode(Node):
     This node can be used in case you want to store a fixed value in a node. It will return the stored value every
     time it is called.
     """
+
     def __init__(self, value, **kwargs):
         self.value = value
         super().__init__(**kwargs)
@@ -265,6 +279,7 @@ class ResultWrapperNode(Node):
     This node is used in order to wrap the result of multiple nodes into one dict. All nodes must be added via
     add_node(name, node) to the ResultWrapperNode.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

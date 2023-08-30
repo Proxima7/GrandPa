@@ -28,9 +28,9 @@ def angle_relative_to_180(angle):
         return 180 - angle
 
 
-def angle(pt1,pt2):
-    m1 = (pt1.getY() - pt1.getY())/1
-    m2 = (pt2.getY() - pt1.getY())/(pt2.getX()-pt1.getX())
+def angle(pt1, pt2):
+    m1 = (pt1.getY() - pt1.getY()) / 1
+    m2 = (pt2.getY() - pt1.getY()) / (pt2.getX() - pt1.getX())
 
-    tnAngle = (m1-m2)/(1+(m1*m2))
+    tnAngle = (m1 - m2) / (1 + (m1 * m2))
     return math.atan(tnAngle)

@@ -7,13 +7,14 @@ from threading import Thread
 
 from psutil import virtual_memory
 
-from grandpa.utils.standard import print_warning, check_debug
+from grandpa.utils.standard import check_debug, print_warning
 
 
 class MultiprocessingManager:
     """
     Manages the multiprocessing of the framework.
     """
+
     def __init__(self):
         self.__task_queue = Queue()
         self.__worker_queue_list = []
@@ -44,7 +45,9 @@ class MultiprocessingManager:
         self.__task_queue.put(task)
 
     def __init_workers(self):
-        debug = os.environ["project_x_debug"] if "project_x_debug" in os.environ else False
+        debug = (
+            os.environ["project_x_debug"] if "project_x_debug" in os.environ else False
+        )
         if debug == "true":
             worker_count = 1
         else:
@@ -81,7 +84,10 @@ class MultiprocessingManager:
         target_queue = None
         target_queue_size = float('inf')
         for t_queue in self.__worker_queue_list:
-            if t_queue.qsize() / t_queue.target_size < target_queue_size and t_queue.qsize() < t_queue.target_size:
+            if (
+                t_queue.qsize() / t_queue.target_size < target_queue_size
+                and t_queue.qsize() < t_queue.target_size
+            ):
                 target_queue_size = t_queue.qsize() / t_queue.target_size
                 target_queue = t_queue
         return target_queue
@@ -91,7 +97,10 @@ class Task:
     """
     Task Class for Multiprocessing. Will execute once.
     """
-    def __init__(self, multiprocessing_manager: MultiprocessingManager, target, *args, **kwargs):
+
+    def __init__(
+        self, multiprocessing_manager: MultiprocessingManager, target, *args, **kwargs
+    ):
         self.target = target
         self.args = args
         self.kwargs = kwargs
@@ -111,9 +120,17 @@ class WorkerQueue(Queue):
     """
     Class for registering a worker queue. Runs constantly until target_size is reached.
     """
-    def __init__(self, multiprocessing_manager: MultiprocessingManager, target,
-                 target_size: int = int(virtual_memory().total / 1000000000), split_results: bool = False,
-                 batches_per_run: int = 1, *args, **kwargs):
+
+    def __init__(
+        self,
+        multiprocessing_manager: MultiprocessingManager,
+        target,
+        target_size: int = int(virtual_memory().total / 1000000000),
+        split_results: bool = False,
+        batches_per_run: int = 1,
+        *args,
+        **kwargs
+    ):
         super().__init__()
         self.target = target
         self.args = args
@@ -180,4 +197,5 @@ class NoData:
     """
     Helper class. Symbolizes that a Task has not yet been completed.
     """
+
     pass

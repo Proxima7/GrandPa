@@ -1,18 +1,18 @@
 import base64
-import io
-import math
-import pickle
-import re
 import glob
-import json
 import inspect
-import sys
-
-from copy import deepcopy
-import numpy as np
-import random
+import io
+import json
+import math
 import os
+import pickle
+import random
+import re
+import sys
+from copy import deepcopy
+
 import cv2
+import numpy as np
 from imageio import imread
 from tqdm import tqdm
 
@@ -104,7 +104,12 @@ def get_next_numeric_folder_in_dir(path: str, alt_folder_name: str):
     Returns:
         Path of a folder that can be created, with the given name and a number appended to it.
     """
-    sub_dir = path + alt_folder_name + str(len(glob.glob(path + alt_folder_name + '*'))) + '\\'
+    sub_dir = (
+        path
+        + alt_folder_name
+        + str(len(glob.glob(path + alt_folder_name + '*')))
+        + '\\'
+    )
     i = 0
     while True:
         if os.path.exists(sub_dir):
@@ -162,7 +167,8 @@ def blocks(files, size=65536):
     """
     while True:
         b = files.read(size)
-        if not b: break
+        if not b:
+            break
         yield b
 
 
@@ -194,8 +200,10 @@ def convert_image_to_255(image):
     elif not np.max(image) > 1:
         return image * 255
     else:
-        print_warning(f'Utils.convert_image_to_255 received image with max value {np.max(image)}. '
-                      f'Normalizing image to 255.')
+        print_warning(
+            f'Utils.convert_image_to_255 received image with max value {np.max(image)}. '
+            f'Normalizing image to 255.'
+        )
         return normalize_image(image, 255)
 
 
@@ -361,7 +369,9 @@ def get_all_line_coords(point1, point2, resolution=1):
         return []
     x_diff = (point1[0] - point2[0]) / dist
     y_diff = (point1[1] - point2[1]) / dist
-    line_points = [[point1[0] - x_diff * i, point1[1] - y_diff * i] for i in range(dist)]
+    line_points = [
+        [point1[0] - x_diff * i, point1[1] - y_diff * i] for i in range(dist)
+    ]
     return line_points
 
 
@@ -375,21 +385,41 @@ def get_min_distance(point, points):
 
 
 def get_conversion_matrix_boxes(src_points, target_points):
-    assert len(src_points) == len(target_points), "Target and source point count need to match."
+    assert len(src_points) == len(
+        target_points
+    ), "Target and source point count need to match."
     assert len(src_points) % 2 == 0, "There must be an even number of source points."
     src_boxes = []
     target_boxes = []
     for i in range(1, int(len(src_points) / 2)):
-        points = [src_points[i * 2 - 2], src_points[i * 2], src_points[i * 2 + 1], src_points[i * 2 - 1]]
+        points = [
+            src_points[i * 2 - 2],
+            src_points[i * 2],
+            src_points[i * 2 + 1],
+            src_points[i * 2 - 1],
+        ]
         src_boxes.append(points)
         target_boxes.append(
-            [target_points[i * 2 - 2], target_points[i * 2], target_points[i * 2 + 1], target_points[i * 2 - 1]])
+            [
+                target_points[i * 2 - 2],
+                target_points[i * 2],
+                target_points[i * 2 + 1],
+                target_points[i * 2 - 1],
+            ]
+        )
     return np.float32(src_boxes), np.float32(target_boxes)
 
 
 def center_to_zero(box):
-    return np.array([[0, 0], [box[1][0] - box[0][0], 0], [box[2][0] - box[3][0], box[2][1] - box[1][1]],
-                     [0, box[3][1] - box[0][1]]], dtype="float32")
+    return np.array(
+        [
+            [0, 0],
+            [box[1][0] - box[0][0], 0],
+            [box[2][0] - box[3][0], box[2][1] - box[1][1]],
+            [0, box[3][1] - box[0][1]],
+        ],
+        dtype="float32",
+    )
 
 
 def warp_polygon_box(img, src_points):
@@ -403,29 +433,56 @@ def calc_poly_warp(src_points):
     forward_index = 1
     reverse_index = -2
     while len(src_points) + 1 > forward_index - reverse_index:
-        bottom_line = get_all_line_coords(src_points[reverse_index], src_points[reverse_index + 1])
-        top_line = get_all_line_coords(src_points[forward_index], src_points[forward_index - 1])
-        closest_top_line_point, min_top_line_distance = get_min_distance(src_points[reverse_index], top_line)
-        closest_bottom_line_point, min_bottom_line_distance = get_min_distance(src_points[forward_index], bottom_line)
+        bottom_line = get_all_line_coords(
+            src_points[reverse_index], src_points[reverse_index + 1]
+        )
+        top_line = get_all_line_coords(
+            src_points[forward_index], src_points[forward_index - 1]
+        )
+        closest_top_line_point, min_top_line_distance = get_min_distance(
+            src_points[reverse_index], top_line
+        )
+        closest_bottom_line_point, min_bottom_line_distance = get_min_distance(
+            src_points[forward_index], bottom_line
+        )
         if min_top_line_distance < min_bottom_line_distance:
             point_pairs.append([src_points[reverse_index], closest_top_line_point])
-            if all(np.array(closest_top_line_point, dtype="int32") == src_points[forward_index]):
+            if all(
+                np.array(closest_top_line_point, dtype="int32")
+                == src_points[forward_index]
+            ):
                 forward_index += 1
             reverse_index -= 1
         else:
             point_pairs.append([src_points[forward_index], closest_bottom_line_point])
-            if all(np.array(closest_bottom_line_point, dtype="int32") == src_points[reverse_index]):
+            if all(
+                np.array(closest_bottom_line_point, dtype="int32")
+                == src_points[reverse_index]
+            ):
                 reverse_index -= 1
             forward_index += 1
-    average_height = int(sum([cal_distance(pp[0], pp[1]) for pp in point_pairs]) / len(point_pairs))
+    average_height = int(
+        sum([cal_distance(pp[0], pp[1]) for pp in point_pairs]) / len(point_pairs)
+    )
     rel_x = 0
     rel_y = 0
     target_points = [[rel_x, rel_y], [rel_x, rel_y + average_height]]
     source_points = [point_pairs[0][0], point_pairs[0][1]]
     distance_to_0 = 0
     for i in range(1, len(point_pairs)):
-        x_coord = rel_x + distance_to_0 + (int((cal_distance(point_pairs[i][0], point_pairs[i - 1][0]) +
-                                                cal_distance(point_pairs[i][1], point_pairs[i - 1][1])) / 2))
+        x_coord = (
+            rel_x
+            + distance_to_0
+            + (
+                int(
+                    (
+                        cal_distance(point_pairs[i][0], point_pairs[i - 1][0])
+                        + cal_distance(point_pairs[i][1], point_pairs[i - 1][1])
+                    )
+                    / 2
+                )
+            )
+        )
         target_points.append([x_coord, rel_y])
         target_points.append([x_coord, rel_y + average_height])
 
@@ -444,11 +501,28 @@ def calc_poly_warp(src_points):
 def warp_with_boxes(img, src_boxes, target_boxes):
     dst = None
     for src_box, target_box in zip(src_boxes, target_boxes):
-        if any([cal_distance(src_box[i1], src_box[i2]) <= 0 for i1, i2 in [(0, 1), (2, 3), (1, 2), (0, 3)]]):
+        if any(
+            [
+                cal_distance(src_box[i1], src_box[i2]) <= 0
+                for i1, i2 in [(0, 1), (2, 3), (1, 2), (0, 3)]
+            ]
+        ):
             continue
         target_box = center_to_zero(target_box)
-        width = round((cal_distance(target_box[0], target_box[1]) + cal_distance(target_box[2], target_box[3])) / 2)
-        height = round((cal_distance(target_box[1], target_box[2]) + cal_distance(target_box[3], target_box[0])) / 2)
+        width = round(
+            (
+                cal_distance(target_box[0], target_box[1])
+                + cal_distance(target_box[2], target_box[3])
+            )
+            / 2
+        )
+        height = round(
+            (
+                cal_distance(target_box[1], target_box[2])
+                + cal_distance(target_box[3], target_box[0])
+            )
+            / 2
+        )
         perspective_mat = cv2.getPerspectiveTransform(src=src_box, dst=target_box)
         perspective_mat = np.array(perspective_mat)
         if dst is None:
@@ -472,8 +546,12 @@ def crop_image(src, points, dst_height=None):
     """
     src_image = src.copy()
     src_points = np.float32(points)
-    width = round((cal_distance(points[0], points[1]) + cal_distance(points[2], points[3])) / 2)
-    height = round((cal_distance(points[1], points[2]) + cal_distance(points[3], points[0])) / 2)
+    width = round(
+        (cal_distance(points[0], points[1]) + cal_distance(points[2], points[3])) / 2
+    )
+    height = round(
+        (cal_distance(points[1], points[2]) + cal_distance(points[3], points[0])) / 2
+    )
     if dst_height is not None:
         if width == 0:
             width += 1
@@ -485,8 +563,13 @@ def crop_image(src, points, dst_height=None):
     crop_points = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
     perspective_mat = cv2.getPerspectiveTransform(src=src_points, dst=crop_points)
     perspective_mat = np.array(perspective_mat)
-    dst_heat_map = cv2.warpPerspective(src_image, perspective_mat, (width, height),
-                                       borderValue=0, borderMode=cv2.BORDER_CONSTANT)
+    dst_heat_map = cv2.warpPerspective(
+        src_image,
+        perspective_mat,
+        (width, height),
+        borderValue=0,
+        borderMode=cv2.BORDER_CONSTANT,
+    )
     dst_heat_map = np.array(dst_heat_map)
     return dst_heat_map, src_points, crop_points
 
@@ -508,7 +591,7 @@ def pad_to_min_shape(img: np.array, min_shape):
             left=left,
             right=right,
             borderType=cv2.BORDER_CONSTANT,
-            value=[0, 0, 0]
+            value=[0, 0, 0],
         )
         img = np.array(img)
     return img, padding
@@ -520,7 +603,7 @@ def crop_polygon(img, points):
     rect = cv2.boundingRect(pts)
     rect = np.array(rect)
     x, y, w, h = rect
-    cropped = img[y:y + h, x:x + w].copy()
+    cropped = img[y : y + h, x : x + w].copy()
 
     ## (2) make mask
     pts = pts - pts.min(axis=0)
@@ -535,7 +618,9 @@ def crop_polygon(img, points):
     return dst
 
 
-def tree_search(search_list, set_value_list, check_func, target_value, always_return=False):
+def tree_search(
+    search_list, set_value_list, check_func, target_value, always_return=False
+):
     """
     Greedy function that is called recursively to create and execute a basic depth first search tree.
 
@@ -559,7 +644,9 @@ def tree_search(search_list, set_value_list, check_func, target_value, always_re
             local_set_value_list = deepcopy(set_value_list)
             local_set_value_list.append(option)
             local_search_list.remove(option)
-            res = tree_search(local_search_list, local_set_value_list, check_func, target_value)
+            res = tree_search(
+                local_search_list, local_set_value_list, check_func, target_value
+            )
             if res is not None:
                 return res
     if always_return:
@@ -583,8 +670,10 @@ def save_as_pickle(data, path):
 def filter_kwargs(func, kwargs):
     filtered_call_params = {}
     for k, v in kwargs.items():
-        if k in inspect.signature(func).parameters or any(str(p.kind) == 'VAR_KEYWORD' for p in
-                                                          inspect.signature(func).parameters.values()):
+        if k in inspect.signature(func).parameters or any(
+            str(p.kind) == 'VAR_KEYWORD'
+            for p in inspect.signature(func).parameters.values()
+        ):
             filtered_call_params[k] = v
     return filtered_call_params
 

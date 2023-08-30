@@ -1,11 +1,13 @@
-import psutil
 import subprocess
+
+import psutil
+
 
 def check_if_process_running(processName):
     '''
     Check if there is any running process that contains the given name processName.
     '''
-    #Iterate over the all the running process
+    # Iterate over the all the running process
     for proc in psutil.process_iter():
         try:
             # Check if process name contains the given name string.

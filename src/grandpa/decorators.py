@@ -1,6 +1,7 @@
 import inspect
 
-from grandpa.template_classes import NodeTemplate, FuncTemplate
+from grandpa.template_classes import (ComponentTemplate, FuncTemplate,
+                                      NodeTemplate, PipelineTemplate)
 
 
 class Node:
@@ -15,4 +16,32 @@ class Node:
         elif inspect.isfunction(f):
             return FuncTemplate(f, self.name)
         else:
-            raise RuntimeError("Node decorator can only be used on classes or functions.")
+            raise RuntimeError(
+                "Node decorator can only be used on classes or functions."
+            )
+
+
+class Component:
+    def __init__(self, name: str, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        if inspect.isfunction(f):
+            return ComponentTemplate(f, self.name)
+        else:
+            raise RuntimeError("Component decorator can only be used on functions.")
+
+
+class Pipeline:
+    def __init__(self, name: str, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, f):
+        if inspect.isfunction(f):
+            return PipelineTemplate(f, self.name)
+        else:
+            raise RuntimeError("Pipeline decorator can only be used on functions.")

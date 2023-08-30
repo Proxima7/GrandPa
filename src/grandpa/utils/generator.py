@@ -1,8 +1,9 @@
-from PIL import Image, ImageChops
-from . import bounding_box
 import cv2
-from .standard import unify_path
 import numpy as np
+from PIL import Image, ImageChops
+
+from . import bounding_box
+from .standard import unify_path
 
 
 def get_mask(shape, bbox: list) -> np.array:
@@ -19,7 +20,9 @@ def get_mask(shape, bbox: list) -> np.array:
     for bb in bbox:
         if len(bb) == 4:
             bb = bounding_box.order_points(bb)
-        mask_img = cv2.fillPoly(mask_img, [np.array(bb).astype("int32")], color=255).astype("float32")
+        mask_img = cv2.fillPoly(
+            mask_img, [np.array(bb).astype("int32")], color=255
+        ).astype("float32")
         mask_img = np.array(mask_img)
     return mask_img
 
@@ -89,7 +92,7 @@ def gaussian_noise(img, mean=0, var=0.1):
 
     """
     row, col = img.shape[:2]
-    sigma = var ** 0.5
+    sigma = var**0.5
     gauss = np.random.normal(mean, sigma, (row, col, 3))
     gauss = gauss.reshape((row, col, 3))
     noisy = (img + gauss).astype(np.uint8)
@@ -165,7 +168,3 @@ def get_transformation(img: np.ndarray, output_shape, bbox: list) -> np.ndarray:
     """
     raw_image = bounding_box.cut_out_image_area(img, bbox[0])
     return cv2.resize(raw_image, tuple(output_shape), interpolation=cv2.INTER_CUBIC)
-
-
-
-

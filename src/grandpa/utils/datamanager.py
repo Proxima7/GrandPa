@@ -2,9 +2,9 @@ import cv2
 import numpy as np
 from numpy import random
 
-from . import standard
-from . import generator
+from . import generator, standard
 from .bounding_box import rescale_bbox
+
 
 def color_fix(image: np.array, target_shape):
     """
@@ -57,19 +57,21 @@ def preprocess_image(image: np.array, target_shape) -> np.array:
     image_size_array = np.array(image_size)
     origin_image_size = np.array(image.shape)
     scale = image_size_array / origin_image_size[:2]
-    image = cv2.resize(image, dsize=tuple(image_size[::-1]), interpolation=cv2.INTER_CUBIC)
+    image = cv2.resize(
+        image, dsize=tuple(image_size[::-1]), interpolation=cv2.INTER_CUBIC
+    )
     image = np.array(image)
     # fixing errors
     image = standard.to_num(image)
     # to flaot
     image = image.astype(np.float32)
     # divide by 255 to normalize image
-    #NORMALIZE_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32) * 255.0
-    #NORMALIZE_VARIANCE = np.array([0.229, 0.224, 0.225], dtype=np.float32) * 255.0
-    #image = image.copy().astype(np.float32)
+    # NORMALIZE_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32) * 255.0
+    # NORMALIZE_VARIANCE = np.array([0.229, 0.224, 0.225], dtype=np.float32) * 255.0
+    # image = image.copy().astype(np.float32)
     image /= 255
-    #image -= NORMALIZE_MEAN
-    #image /= NORMALIZE_VARIANCE
+    # image -= NORMALIZE_MEAN
+    # image /= NORMALIZE_VARIANCE
     # image bbox_format
     image = color_fix(image, target_shape)
 
@@ -89,7 +91,9 @@ def get_and_preprocess_template(image, template_shape, bbox):
         A preprocessed template cut out of the image
     """
     output_hw = template_shape[:-1][::-1]
-    template = generator.get_transformation(image, output_hw[:2], bbox['bounding_box'].tolist())
+    template = generator.get_transformation(
+        image, output_hw[:2], bbox['bounding_box'].tolist()
+    )
     template = preprocess_image(template, template_shape[1:])[0]
     return template
 
@@ -104,7 +108,9 @@ def preprocess_images(images: list, target_shape, return_scale=True) -> np.array
     Returns:
         A list of preprocessed images or the scales the images need to be resized by if return_scale == True.
     """
-    images_scales = np.array([preprocess_image(img, target_shape) for img in images], dtype=object)
+    images_scales = np.array(
+        [preprocess_image(img, target_shape) for img in images], dtype=object
+    )
     if return_scale:
         return images_scales
     return np.array([im_sc[0] for im_sc in images_scales])
@@ -112,7 +118,9 @@ def preprocess_images(images: list, target_shape, return_scale=True) -> np.array
 
 def rescale_bounding_boxes(target_shape, image_shapes, bounding_boxes):
     for i in range(len(image_shapes)):
-        image_shapes[i] = image_shapes[i] if len(image_shapes[i]) == 2 else image_shapes[i][:2]
+        image_shapes[i] = (
+            image_shapes[i] if len(image_shapes[i]) == 2 else image_shapes[i][:2]
+        )
     scales = target_shape[:2] / np.array(image_shapes)
     rescaled_bboxes = rescale_bounding_boxes_by_scales(bounding_boxes, scales)
     return rescaled_bboxes
@@ -147,11 +155,14 @@ def rescale_bounding_boxes_by_scales(boxes, scales):
         # tile scales to four point and then easy matrix multiplication
         scales = np.tile(scales, 4).reshape(len(scales), 4, 2)
 
-    rescaled_boxes = [[np.array(box) * [scale[1], scale[0]] for box in img_boxes] for scale, img_boxes in zip(scales, boxes)]
+    rescaled_boxes = [
+        [np.array(box) * [scale[1], scale[0]] for box in img_boxes]
+        for scale, img_boxes in zip(scales, boxes)
+    ]
     return rescaled_boxes
 
     # Two point bounding box
-    #return [np.array(boxes[i]) * np.tile(scales[i], 2).T for i in range(len(boxes))]
+    # return [np.array(boxes[i]) * np.tile(scales[i], 2).T for i in range(len(boxes))]
 
 
 def process_inputs(batch, target_shape):
@@ -196,9 +207,13 @@ def preprocess_true_boxes(true_boxes, anchors, num_classes, input_shape, output_
     Returns:
         y_true: list of array, shape like yolo_outputs, xywh are relative values
     """
-    assert (true_boxes[..., 4] < num_classes).all(), 'class id must be less than num_classes'
+    assert (
+        true_boxes[..., 4] < num_classes
+    ).all(), 'class id must be less than num_classes'
     num_layers = len(anchors) // 3  # default setting
-    anchor_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]] if num_layers == 3 else [[3, 4, 5], [0, 1, 2]]
+    anchor_mask = (
+        [[6, 7, 8], [3, 4, 5], [0, 1, 2]] if num_layers == 3 else [[3, 4, 5], [0, 1, 2]]
+    )
 
     # Transform box info to (x_center, y_center, box_width, box_height, cls_id)
     # and image relative coordinate.
@@ -217,16 +232,32 @@ def preprocess_true_boxes(true_boxes, anchors, num_classes, input_shape, output_
     #  Besser mehr unterstützen oder parametrisieren
     max_down_sample_factor = input_shape[0] // output_shapes[0][0]
     grid_shapes = [
-        input_shape // {0: max_down_sample_factor, 1: max_down_sample_factor//2, 2: max_down_sample_factor//4}[l]
+        input_shape
+        // {
+            0: max_down_sample_factor,
+            1: max_down_sample_factor // 2,
+            2: max_down_sample_factor // 4,
+        }[l]
         for l in range(num_layers)
     ]
 
-    yolo_boxes = [np.zeros((batch_size, grid_shapes[l][0], grid_shapes[l][1], len(anchor_mask[l]), 5 + num_classes),
-                       dtype='float32') for l in range(num_layers)]
+    yolo_boxes = [
+        np.zeros(
+            (
+                batch_size,
+                grid_shapes[l][0],
+                grid_shapes[l][1],
+                len(anchor_mask[l]),
+                5 + num_classes,
+            ),
+            dtype='float32',
+        )
+        for l in range(num_layers)
+    ]
 
     # Expand dim to apply broadcasting.
     anchors = np.expand_dims(anchors, 0)
-    anchor_maxes = anchors / 2.
+    anchor_maxes = anchors / 2.0
     anchor_mins = -anchor_maxes
     valid_mask = boxes_wh[..., 0] > 0
 
@@ -239,8 +270,12 @@ def preprocess_true_boxes(true_boxes, anchors, num_classes, input_shape, output_
         for t, n in enumerate(best_anchor):
             for l in range(num_layers):
                 if n in anchor_mask[l]:
-                    i = np.floor(true_boxes[b, t, 0] * grid_shapes[l][1]).astype('int32')
-                    j = np.floor(true_boxes[b, t, 1] * grid_shapes[l][0]).astype('int32')
+                    i = np.floor(true_boxes[b, t, 0] * grid_shapes[l][1]).astype(
+                        'int32'
+                    )
+                    j = np.floor(true_boxes[b, t, 1] * grid_shapes[l][0]).astype(
+                        'int32'
+                    )
                     k = anchor_mask[l].index(n)
                     c = true_boxes[b, t, 4].astype('int32')
                     yolo_boxes[l][b, j, i, k, 0:4] = true_boxes[b, t, 0:4]
@@ -266,12 +301,12 @@ def get_best_anchor(anchor_maxes, anchor_mins, anchors, wh):
     # Expand dim to apply broadcasting.
     wh = np.expand_dims(wh, -2)
 
-    box_maxes = wh / 2.
+    box_maxes = wh / 2.0
     box_mins = -box_maxes
 
     intersect_mins = np.maximum(box_mins, anchor_mins)
     intersect_maxes = np.minimum(box_maxes, anchor_maxes)
-    intersect_wh = np.maximum(intersect_maxes - intersect_mins, 0.)
+    intersect_wh = np.maximum(intersect_maxes - intersect_mins, 0.0)
     intersect_area = intersect_wh[..., 0] * intersect_wh[..., 1]
 
     box_area = wh[..., 0] * wh[..., 1]
@@ -359,7 +394,9 @@ def filter_annotations_for_class(class_name):
     def _filter_annotations_for_class(batch):
         filtered = []
         for x in batch:
-            filtered.append([ann for ann in x['annotations'] if ann['type'] == class_name])
+            filtered.append(
+                [ann for ann in x['annotations'] if ann['type'] == class_name]
+            )
         return filtered
 
     return _filter_annotations_for_class
@@ -370,12 +407,13 @@ def get_annotation_vals(query):
         anns = []
         for x in annotations:
             if type(query) == list:
-                anns.append([
-                    standard.get_value_in_nested_dict(ann, query) for ann in x
-                ])
+                anns.append(
+                    [standard.get_value_in_nested_dict(ann, query) for ann in x]
+                )
             else:
                 anns.append([ann[query] for ann in x])
         return anns
+
     return _f
 
 
@@ -394,12 +432,16 @@ def get_reshaped_masks(target_shape, rescaled_bounding_boxes):
     Returns:
         reshaped_masks: N Masks, N depending on the batch size.
     """
-    masks = [generator.get_mask(target_shape[:2], rescaled_img_bounding_boxes)
-             for rescaled_img_bounding_boxes in rescaled_bounding_boxes]
+    masks = [
+        generator.get_mask(target_shape[:2], rescaled_img_bounding_boxes)
+        for rescaled_img_bounding_boxes in rescaled_bounding_boxes
+    ]
     return masks
 
 
-def store_data_in_inputs_and_outputs(neurons, data, key_refs, inputs=None, outputs=None):
+def store_data_in_inputs_and_outputs(
+    neurons, data, key_refs, inputs=None, outputs=None
+):
     """
     Stores the data in the input and/or output func_dict and returns them.
 
@@ -442,7 +484,9 @@ def get_template_dict(batch, shapes, targets):
         templates = []
         template_shape = shapes[key]
         for i in range(len(batch[0])):
-            template = get_and_preprocess_template(batch[0][i], template_shape, targets[i])
+            template = get_and_preprocess_template(
+                batch[0][i], template_shape, targets[i]
+            )
             templates.append(np.array(template))
         results[key] = np.array(templates)
     return results
@@ -461,9 +505,14 @@ def convert_bb_to_yolov4bb(bounding_boxes, input_shapes, output_shapes, anchors=
         Bounding boxes in YoloV4 format.
     """
     # prepare to bbox_format where multiple boxes could be per image --> 0 is the class
-    bbx = np.array([np.array([np.append(b, 0) for b in image]) for image in bounding_boxes])
+    bbx = np.array(
+        [np.array([np.append(b, 0) for b in image]) for image in bounding_boxes]
+    )
     bbx = [image.reshape([1, image.shape[0], image.shape[1]]) for image in bbx]
-    yolo_bounding_boxes = [preprocess_true_boxes(image, anchors, 1, input_shapes, output_shapes) for image in bbx]
+    yolo_bounding_boxes = [
+        preprocess_true_boxes(image, anchors, 1, input_shapes, output_shapes)
+        for image in bbx
+    ]
     n1 = np.array([x[0][0] for x in yolo_bounding_boxes])
     n2 = np.array([x[1][0] for x in yolo_bounding_boxes])
     n3 = np.array([x[2][0] for x in yolo_bounding_boxes])

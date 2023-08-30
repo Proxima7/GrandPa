@@ -1,15 +1,17 @@
-import numpy as np
 from enum import Enum
+
 import cv2
+import numpy as np
 
 from .math import angle_between_points, angle_relative_to_180
-from .standard import tree_search, cal_distance
+from .standard import cal_distance, tree_search
 
 
 class BboxFormat(Enum):
     """
     Class used to reference the bounding box bbox_format.
     """
+
     FOUR_POINT = 0
     TWO_POINT = 1
     XY_WIDTH_HEIGHT = 2
@@ -30,15 +32,21 @@ def cut_out_image_area(image, area_bbox):
     # now that we have the dimensions of the new image, construct the set of destination points to obtain a
     # "birds eye view", (i.e. top-down view) of the image, again specifying points in the top-left, top-right,
     # bottom-right, and bottom-left order
-    destination_points = np.array([
-        [0, 0],
-        [max_width - 1, 0],
-        [max_width - 1, max_height - 1],
-        [0, max_height - 1]], dtype="float32")
+    destination_points = np.array(
+        [
+            [0, 0],
+            [max_width - 1, 0],
+            [max_width - 1, max_height - 1],
+            [0, max_height - 1],
+        ],
+        dtype="float32",
+    )
     # compute the perspective transform matrix and then apply it
     transform_matrix = cv2.getPerspectiveTransform(ordered_bbox, destination_points)
     transform_matrix = np.array(transform_matrix)
-    cut_out_image = cv2.warpPerspective(image, transform_matrix, (max_width, max_height))
+    cut_out_image = cv2.warpPerspective(
+        image, transform_matrix, (max_width, max_height)
+    )
     cut_out_image = np.array(cut_out_image)
     # return the cut out image
     return cut_out_image
@@ -150,7 +158,9 @@ def xy_width_height_to_four_point(bbox: list):
     return two_point_bb_to_4_point(bbox)
 
 
-def bbox_conversion(bbox, bbox_format: BboxFormat, target_bbox_format: BboxFormat) -> np.array:
+def bbox_conversion(
+    bbox, bbox_format: BboxFormat, target_bbox_format: BboxFormat
+) -> np.array:
     """
     This method converts a bounding box to a different bounding box bbox_format.
 
@@ -166,13 +176,22 @@ def bbox_conversion(bbox, bbox_format: BboxFormat, target_bbox_format: BboxForma
     if bbox_format == target_bbox_format:
         return np.array(bbox)
     # two point to four point
-    if bbox_format == BboxFormat.TWO_POINT and target_bbox_format == BboxFormat.FOUR_POINT:
+    if (
+        bbox_format == BboxFormat.TWO_POINT
+        and target_bbox_format == BboxFormat.FOUR_POINT
+    ):
         return np.array(two_point_bb_to_4_point(bbox))
     # point + width, height to four point
-    if bbox_format == BboxFormat.XY_WIDTH_HEIGHT and target_bbox_format == BboxFormat.FOUR_POINT:
+    if (
+        bbox_format == BboxFormat.XY_WIDTH_HEIGHT
+        and target_bbox_format == BboxFormat.FOUR_POINT
+    ):
         return np.array(xy_width_height_to_four_point(bbox))
     # four point to two point
-    if bbox_format == BboxFormat.FOUR_POINT and target_bbox_format == BboxFormat.TWO_POINT:
+    if (
+        bbox_format == BboxFormat.FOUR_POINT
+        and target_bbox_format == BboxFormat.TWO_POINT
+    ):
         return np.array(four_point_bb_to_2_point(bbox))
 
 
@@ -269,6 +288,7 @@ def convert_polygon_box_to_4_point_bb(bbox):
     bbox, _ = get_4_point_bbox_with_center(bbox, center=False)
     return bbox
 
+
 def get_x_y_min_max(bbox):
     """
     Gets the x and y min and max values of the bbox.
@@ -289,6 +309,7 @@ def get_x_y_min_max(bbox):
     y_min = np.min(y_points)
     return x_max, x_min, y_max, y_min
 
+
 def flip_bbox(bbox, img_shape, direction):
     """
     Flips a 4 point bounding box in a given direction
@@ -301,7 +322,7 @@ def flip_bbox(bbox, img_shape, direction):
 
     """
     h, w = img_shape[:2]
-    center_x, center_y = int(w/2), int(h/2)
+    center_x, center_y = int(w / 2), int(h / 2)
     if direction == "leftright":
         for i in range(len(bbox)):
             bbox[i][0] -= 2 * (bbox[i][0] - center_x)
@@ -387,11 +408,16 @@ def get_matching_bounding_boxes(bboxes, w, h):
         y0 = np.amin([b[1] for b in bbox])
         y1 = np.amax([b[1] for b in bbox])
 
-    return np.array([bb for bb in bboxes
-                     if np.amin([b[0] for b in bb]) >= 0
-                     and np.amax([b[0] for b in bb]) <= w
-                     and np.amin([b[1] for b in bb]) >= 0
-                     and np.amax([b[1] for b in bb]) <= h])
+    return np.array(
+        [
+            bb
+            for bb in bboxes
+            if np.amin([b[0] for b in bb]) >= 0
+            and np.amax([b[0] for b in bb]) <= w
+            and np.amin([b[1] for b in bb]) >= 0
+            and np.amax([b[1] for b in bb]) <= h
+        ]
+    )
 
 
 def convert_triangle_to_quadrangle(box):
@@ -414,7 +440,10 @@ def order_points(polygon, clockwise=True, always_return=True):
 
 
 def overall_angle(box):
-    angles = [angle_relative_to_180(angle_between_points(box[i-1], box[i], box[i+1])) for i in range(len(box[:-1]))]
+    angles = [
+        angle_relative_to_180(angle_between_points(box[i - 1], box[i], box[i + 1]))
+        for i in range(len(box[:-1]))
+    ]
     angles.append(angle_relative_to_180(angle_between_points(box[-2], box[-1], box[0])))
     return round(sum(angles))
 
@@ -428,26 +457,58 @@ def point_in_box(point, box):
     point = np.array(point)
 
     # Point calc
-    tr1 = 0.5 * cal_distance(box[0], box[3]) * np.linalg.norm(np.cross(box[3] - box[0], box[0] - point)) / \
-          np.linalg.norm(box[3] - box[0])
-    tr2 = 0.5 * cal_distance(box[3], box[2]) * np.linalg.norm(np.cross(box[2] - box[3], box[3] - point)) / \
-          np.linalg.norm(box[2] - box[3])
-    tr3 = 0.5 * cal_distance(box[2], box[1]) * np.linalg.norm(np.cross(box[1] - box[2], box[2] - point)) / \
-          np.linalg.norm(box[1] - box[2])
-    tr4 = 0.5 * cal_distance(box[1], box[0]) * np.linalg.norm(np.cross(box[0] - box[1], box[1] - point)) / \
-          np.linalg.norm(box[0] - box[1])
+    tr1 = (
+        0.5
+        * cal_distance(box[0], box[3])
+        * np.linalg.norm(np.cross(box[3] - box[0], box[0] - point))
+        / np.linalg.norm(box[3] - box[0])
+    )
+    tr2 = (
+        0.5
+        * cal_distance(box[3], box[2])
+        * np.linalg.norm(np.cross(box[2] - box[3], box[3] - point))
+        / np.linalg.norm(box[2] - box[3])
+    )
+    tr3 = (
+        0.5
+        * cal_distance(box[2], box[1])
+        * np.linalg.norm(np.cross(box[1] - box[2], box[2] - point))
+        / np.linalg.norm(box[1] - box[2])
+    )
+    tr4 = (
+        0.5
+        * cal_distance(box[1], box[0])
+        * np.linalg.norm(np.cross(box[0] - box[1], box[1] - point))
+        / np.linalg.norm(box[0] - box[1])
+    )
 
     avg_len = (cal_distance(box[1], box[0]) + cal_distance(box[3], box[2])) / 2
     avg_height = (cal_distance(box[3], box[0]) + cal_distance(box[2], box[1])) / 2
     point = np.array([box[0][0] + avg_len, box[0][1] + avg_height])
-    tra1 = 0.5 * cal_distance(box[0], box[3]) * np.linalg.norm(np.cross(box[3] - box[0], box[0] - point)) / \
-          np.linalg.norm(box[3] - box[0])
-    tra2 = 0.5 * cal_distance(box[3], box[2]) * np.linalg.norm(np.cross(box[2] - box[3], box[3] - point)) / \
-          np.linalg.norm(box[2] - box[3])
-    tra3 = 0.5 * cal_distance(box[2], box[1]) * np.linalg.norm(np.cross(box[1] - box[2], box[2] - point)) / \
-          np.linalg.norm(box[1] - box[2])
-    tra4 = 0.5 * cal_distance(box[1], box[0]) * np.linalg.norm(np.cross(box[0] - box[1], box[1] - point)) / \
-          np.linalg.norm(box[0] - box[1])
+    tra1 = (
+        0.5
+        * cal_distance(box[0], box[3])
+        * np.linalg.norm(np.cross(box[3] - box[0], box[0] - point))
+        / np.linalg.norm(box[3] - box[0])
+    )
+    tra2 = (
+        0.5
+        * cal_distance(box[3], box[2])
+        * np.linalg.norm(np.cross(box[2] - box[3], box[3] - point))
+        / np.linalg.norm(box[2] - box[3])
+    )
+    tra3 = (
+        0.5
+        * cal_distance(box[2], box[1])
+        * np.linalg.norm(np.cross(box[1] - box[2], box[2] - point))
+        / np.linalg.norm(box[1] - box[2])
+    )
+    tra4 = (
+        0.5
+        * cal_distance(box[1], box[0])
+        * np.linalg.norm(np.cross(box[0] - box[1], box[1] - point))
+        / np.linalg.norm(box[0] - box[1])
+    )
 
     quadrangle_area = sum([tra1, tra2, tra3, tra4])
     calc_p_area = sum([tr1, tr2, tr3, tr4])

@@ -1,19 +1,23 @@
-from typing import Union
 import re
+from typing import Union
 
 from psutil import virtual_memory
 
-from grandpa.multiprocessing_manager import MultiprocessingManager, Task, WorkerQueue
+from grandpa.multiprocessing_manager import (MultiprocessingManager, Task,
+                                             WorkerQueue)
 
 
 class Switch:
     """
     Used to connect nodes to each other.
     """
+
     def __init__(self, address, node, main_router=None):
         self.address = address
         self.factory = node
-        self.default_gateway = main_router.get_parent(address) if address and main_router else None
+        self.default_gateway = (
+            main_router.get_parent(address) if address and main_router else None
+        )
         self.address_table = {}
         self.main_router = main_router
         if address:
@@ -37,8 +41,14 @@ class Switch:
         """
         return self.main_router.execute_task(target, *args, **kwargs)
 
-    def add_worker_queue(self, target, target_size: int = int(virtual_memory().total / 1000000000),
-                         split_results: bool = False, *args, **kwargs) -> WorkerQueue:
+    def add_worker_queue(
+        self,
+        target,
+        target_size: int = int(virtual_memory().total / 1000000000),
+        split_results: bool = False,
+        *args,
+        **kwargs,
+    ) -> WorkerQueue:
         """
         Adds a worker queue to the MultiProcessingManager.
 
@@ -52,8 +62,13 @@ class Switch:
         Returns:
             Worker Queue object.
         """
-        return self.main_router.add_worker_queue(target, target_size=target_size, split_results=split_results, *args,
-                                                 **kwargs)
+        return self.main_router.add_worker_queue(
+            target,
+            target_size=target_size,
+            split_results=split_results,
+            *args,
+            **kwargs,
+        )
 
     def register(self, target, name=None):
         if name:
@@ -110,7 +125,9 @@ class Switch:
         if path in self.address_table:
             return self.__get_routing_target(path, return_value)
         elif self.__get_closest_switch(path):
-            return self._forward_to_switch(path, return_value, self.__get_closest_switch(path))
+            return self._forward_to_switch(
+                path, return_value, self.__get_closest_switch(path)
+            )
         else:
             if self.default_gateway:
                 return self.default_gateway.route(path, return_value)
@@ -132,8 +149,11 @@ class Switch:
         return resolve_dict
 
     def __get_closest_switch(self, path: str):
-        matching_switches = [self.address_table[s_path] for s_path in self.address_table
-                             if re.match(s_path + '/.*', path)]
+        matching_switches = [
+            self.address_table[s_path]
+            for s_path in self.address_table
+            if re.match(s_path + '/.*', path)
+        ]
         return max(matching_switches) if matching_switches else None
 
     def __get_routing_target(self, path, return_value):
@@ -161,13 +181,17 @@ class Switch:
     def get_all_targets(self):
         return list(self.address_table.values())
 
-    def get_filtered_targets(self, target_type_filter: Union[type, list] = None) -> list:
+    def get_filtered_targets(
+        self, target_type_filter: Union[type, list] = None
+    ) -> list:
         if not target_type_filter:
             return self.get_all_targets()
 
         if type(target_type_filter) == type:
             target_type_filter = [target_type_filter]
-            return list(p for p in self.address_table.values() if type(p) in target_type_filter)
+            return list(
+                p for p in self.address_table.values() if type(p) in target_type_filter
+            )
 
     def get_target_dependencies(self, target_type_filter: Union[type, list] = None):
         targets = self.get_filtered_targets(target_type_filter)
@@ -184,16 +208,32 @@ class Router(Switch):
     def execute_task(self, target, *args, **kwargs) -> Task:
         return Task(self.multiprocessing_manager, target, *args, **kwargs)
 
-    def add_worker_queue(self, target, target_size: int = int(virtual_memory().total / 1000000000),
-                         split_results: bool = False, *args, **kwargs) -> WorkerQueue:
-        return WorkerQueue(self.multiprocessing_manager, target, target_size=target_size, split_results=split_results,
-                           *args, **kwargs)
+    def add_worker_queue(
+        self,
+        target,
+        target_size: int = int(virtual_memory().total / 1000000000),
+        split_results: bool = False,
+        *args,
+        **kwargs,
+    ) -> WorkerQueue:
+        return WorkerQueue(
+            self.multiprocessing_manager,
+            target,
+            target_size=target_size,
+            split_results=split_results,
+            *args,
+            **kwargs,
+        )
 
     def get_parent(self, address: str):
         if '/' not in address:
             return self
         else:
-            address = address.rsplit('/', 1)[0] if not address.endswith('/') else address.rsplit('/', 2)[0]
+            address = (
+                address.rsplit('/', 1)[0]
+                if not address.endswith('/')
+                else address.rsplit('/', 2)[0]
+            )
             try:
                 return self.get_instruction(address).switch if address != '' else self
             except RoutingError:
@@ -201,7 +241,9 @@ class Router(Switch):
 
     @staticmethod
     def __convert_to_relative_path(path):
-        assert path[0] == '/', f'Error: {path} is not a global path. Did you want to search for /{path}?'
+        assert (
+            path[0] == '/'
+        ), f'Error: {path} is not a global path. Did you want to search for /{path}?'
         path = path.replace('/', '', 1)
         return path
 

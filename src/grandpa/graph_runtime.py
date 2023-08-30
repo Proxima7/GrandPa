@@ -1,8 +1,8 @@
 from copy import deepcopy
 
-from grandpa.template_parser import TemplateParser
 from grandpa.node import Node
 from grandpa.routing import Router
+from grandpa.template_parser import TemplateParser
 from grandpa.utils.standard import print_warning
 
 
@@ -10,12 +10,19 @@ class GraphRuntime(Node):
     """
     Core of the framework. Manages all graph functionalities.
     """
+
     def __init__(self, **kwargs):
         self.router = Router()
         super().__init__(address="runtime", main_router=self.router)
         self.graphs = {}
 
-    def add_graph(self, graph_name: str, template: dict, template_settings: dict, import_prefix: str = ""):
+    def add_graph(
+        self,
+        graph_name: str,
+        template: dict,
+        template_settings: dict,
+        import_prefix: str = "",
+    ):
         """
         Adds a new graph to the runtime.
 
@@ -31,7 +38,9 @@ class GraphRuntime(Node):
         if graph_name in self.graphs:
             assert "GraphName {graph_name} already defined. Did you mean merge_graph?"
 
-        new_graph = TemplateParser(template, template_settings, self.router, import_prefix=import_prefix)
+        new_graph = TemplateParser(
+            template, template_settings, self.router, import_prefix=import_prefix
+        )
         new_graph.initialized_nodes.append(self.address)
         self.graphs[graph_name] = new_graph
 
@@ -64,7 +73,9 @@ class GraphRuntime(Node):
         """
         graph_1 = self.graphs[graph_to_update]
         graph_2 = self.graphs[update_with]
-        new_nodes, removed_nodes, nodes_with_changes = self.__get_differences(graph_1, graph_2)
+        new_nodes, removed_nodes, nodes_with_changes = self.__get_differences(
+            graph_1, graph_2
+        )
         for node in new_nodes:
             graph_1.init_node(node.name, node.orig_node_def)
         for node in removed_nodes:
@@ -103,7 +114,11 @@ class GraphRuntime(Node):
         new_graph_def = graph_1.graph_def
         new_graph_def = self.__add_new_nodes(new_graph_def, new_nodes)
         new_graph_def = self.__copy_updated_nodes(new_graph_def, nodes_with_changes)
-        self.add_graph(result_graph_name + '_temp', new_graph_def, graph_1.settings_reader.framework_settings)
+        self.add_graph(
+            result_graph_name + '_temp',
+            new_graph_def,
+            graph_1.settings_reader.framework_settings,
+        )
         return self.update_graph(graph_name_1, result_graph_name + '_temp')
 
     def __copy_updated_nodes(self, new_graph_def, nodes_with_changes):
@@ -150,7 +165,9 @@ class GraphRuntime(Node):
     def __get_graph_nodes(self, graph: TemplateParser, graph_name: str):
         graph_def = graph.graph_def
         graph_def = self.__del_keys(graph_def)
-        return {key: VirtualNode(key, node, graph_name) for key, node in graph_def.items()}
+        return {
+            key: VirtualNode(key, node, graph_name) for key, node in graph_def.items()
+        }
 
     @staticmethod
     def __del_keys(graph_def):
@@ -206,6 +223,7 @@ class VirtualNode:
     """
     Helper class for graph merging.
     """
+
     def __init__(self, name, node_definition, graph):
         self.orig_node_def = deepcopy(node_definition)
         self.name = name
@@ -223,12 +241,25 @@ class VirtualNode:
 
     def check_differences(self, new_graph_node):
         if not self.differences_checked:
-            self.update_settings = self.__compare(self.node_settings, new_graph_node.node_settings)
+            self.update_settings = self.__compare(
+                self.node_settings, new_graph_node.node_settings
+            )
             self.update_params = self.__compare(self.params, new_graph_node.params)
-            self.update_setting_nodes = self.__compare_nodes(self.setting_nodes, new_graph_node.setting_nodes)
-            self.update_param_nodes = self.__compare_nodes(self.param_nodes, new_graph_node.param_nodes)
+            self.update_setting_nodes = self.__compare_nodes(
+                self.setting_nodes, new_graph_node.setting_nodes
+            )
+            self.update_param_nodes = self.__compare_nodes(
+                self.param_nodes, new_graph_node.param_nodes
+            )
             self.differences_checked = True
-        result = any([self.update_settings, self.update_params, self.update_setting_nodes, self.update_param_nodes])
+        result = any(
+            [
+                self.update_settings,
+                self.update_params,
+                self.update_setting_nodes,
+                self.update_param_nodes,
+            ]
+        )
         return result
 
     @staticmethod
@@ -295,7 +326,9 @@ class VirtualNode:
         tags = ['//', '/', 'node://', 'node:/']
         if 'node_settings' in node_definition:
             for key, setting in deepcopy(node_definition)['node_settings'].items():
-                if type(setting) is str and any([setting.startswith(tag) for tag in tags]):
+                if type(setting) is str and any(
+                    [setting.startswith(tag) for tag in tags]
+                ):
                     for tag in tags:
                         if setting.startswith(tag):
                             setting = setting.replace(tag, '', 1)

@@ -1,5 +1,5 @@
-import numpy as np
 import cv2
+import numpy as np
 
 
 def gaussian_2d():
@@ -10,19 +10,19 @@ def gaussian_2d():
     mean = 0
     radius = 2.5
     # a = 1 / (2 * np.pi * (radius ** 2))
-    a = 1.
+    a = 1.0
     x0, x1 = np.meshgrid(np.arange(-5, 5, 0.01), np.arange(-5, 5, 0.01))
     x = np.append([x0.reshape(-1)], [x1.reshape(-1)], axis=0).T
 
     m0 = (x[:, 0] - mean) ** 2
     m1 = (x[:, 1] - mean) ** 2
-    gaussian_map = a * np.exp(-0.5 * (m0 + m1) / (radius ** 2))
+    gaussian_map = a * np.exp(-0.5 * (m0 + m1) / (radius**2))
     gaussian_map = gaussian_map.reshape(len(x0), len(x1))
 
     max_prob = np.max(gaussian_map)
     min_prob = np.min(gaussian_map)
     gaussian_map = (gaussian_map - min_prob) / (max_prob - min_prob)
-    gaussian_map = np.clip(gaussian_map, 0., 1.)
+    gaussian_map = np.clip(gaussian_map, 0.0, 1.0)
     return gaussian_map
 
 
@@ -45,16 +45,23 @@ class GaussianGenerator:
         dst_points = np.float32(dst_points)
         perspective_mat = cv2.getPerspectiveTransform(src=src_points, dst=dst_points)
         perspective_mat = np.array(perspective_mat)
-        dst = cv2.warpPerspective(img, perspective_mat, (dst_shape[1], dst_shape[0]),
-                                  borderValue=0, borderMode=cv2.BORDER_CONSTANT)
+        dst = cv2.warpPerspective(
+            img,
+            perspective_mat,
+            (dst_shape[1], dst_shape[0]),
+            borderValue=0,
+            borderMode=cv2.BORDER_CONSTANT,
+        )
         dst = np.array(dst)
         return dst
 
     def gen(self, score_shape, points_list):
         score_map = np.zeros(score_shape, dtype=np.float32)
         for points in points_list:
-            tmp_score_map = self.perspective_transform(self.gaussian_img, score_shape, points)
+            tmp_score_map = self.perspective_transform(
+                self.gaussian_img, score_shape, points
+            )
             score_map = np.where(tmp_score_map > score_map, tmp_score_map, score_map)
-        score_map = np.clip(score_map, 0, 1.)
+        score_map = np.clip(score_map, 0, 1.0)
         # score_map = score_map.astype(np.uint8)
         return score_map

@@ -1,14 +1,37 @@
-from grandpa.decorators import Node
+from grandpa.decorators import Component, Node, Pipeline
 
 
 @Node("add")
-def add():
-    return 1 + 2
+def add(a, b):
+    return a + b
 
 
 @Node("subtract")
-def subtract(a):
-    return a - 2
+def subtract(a, b):
+    return a - b
+
+
+@Node("multiply")
+def multiply(a, b):
+    return a * b
+
+
+@Node("divide")
+def divide(a, b):
+    return a / b
+
+
+@Node("round")
+def round_(a):
+    return round(a)
+
+
+@Component("even_number")
+def even_number(a):
+    divide_by_two = divide(a, 2)
+    round_divide_by_two = round_(divide_by_two)
+    multiply_by_two = multiply(round_divide_by_two, 2)
+    return multiply_by_two
 
 
 @Node("test")
@@ -21,13 +44,15 @@ class TestNode:
         return self.value_a + self.value_b + value_c
 
 
-def test_func():
-    a = add()
-    b = subtract(a)
-    c = TestNode(a, 15)
-    d = c(b)
+@Pipeline("test_pipeline")
+def test_pipeline():
+    a = add(1, 2)
+    b = even_number(a)
+    c = TestNode(b, 3)
+    d = c(4)
     print()
+    return d
 
 
 if __name__ == "__main__":
-    test_func()
+    test_pipeline()

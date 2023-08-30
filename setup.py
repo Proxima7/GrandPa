@@ -1,15 +1,14 @@
 from distutils.core import setup
 
-
-install_requires=[
-   "setuptools",
+install_requires = [
+    "setuptools",
     "wheel",
     "imageio",
     "numpy",
     "opencv-python",
     "Pillow",
     "psutil",
-    "tqdm"
+    "tqdm",
 ]
 
 
@@ -23,5 +22,5 @@ setup(
     author_email='pascal.iwohn@bizerba.com',
     description='',
     install_requires=install_requires,
-    package_dir={"": "src"}
+    package_dir={"": "src"},
 )

@@ -14,19 +14,19 @@ def gaussian_2d():
     """
     mean = 0
     radius = 1.4
-    a = 1.
+    a = 1.0
     x0, x1 = np.meshgrid(np.arange(-5, 5, 0.01), np.arange(-5, 5, 0.01))
     x = np.append([x0.reshape(-1)], [x1.reshape(-1)], axis=0).T
 
     m0 = (x[:, 0] - mean) ** 2
     m1 = (x[:, 1] - mean) ** 2
-    gaussian_map = a * np.exp(-0.5 * (m0 + m1) / (radius ** 2))
+    gaussian_map = a * np.exp(-0.5 * (m0 + m1) / (radius**2))
     gaussian_map = gaussian_map.reshape(len(x0), len(x1))
 
     max_prob = np.max(gaussian_map)
     min_prob = np.min(gaussian_map)
     gaussian_map = (gaussian_map - min_prob) / (max_prob - min_prob)
-    gaussian_map = np.clip(gaussian_map, 0., 1.)
+    gaussian_map = np.clip(gaussian_map, 0.0, 1.0)
     return gaussian_map
 
 
@@ -50,8 +50,13 @@ class GaussianGenerator:
         dst_points = np.float32(dst_points)
         perspective_mat = cv2.getPerspectiveTransform(src=src_points, dst=dst_points)
         perspective_mat = np.array(perspective_mat)
-        dst = cv2.warpPerspective(img, perspective_mat, (dst_shape[1], dst_shape[0]),
-                                  borderValue=0, borderMode=cv2.BORDER_CONSTANT)
+        dst = cv2.warpPerspective(
+            img,
+            perspective_mat,
+            (dst_shape[1], dst_shape[0]),
+            borderValue=0,
+            borderMode=cv2.BORDER_CONSTANT,
+        )
         dst = np.array(dst)
         return dst
 
@@ -63,17 +68,25 @@ class GaussianGenerator:
     def get_gaus_map(self, shape):
         gaus_map_size = max(shape)
         if gaus_map_size not in self.gaussian_maps:
-            gaus_map = self.normalize(cv2.resize(deepcopy(self.gaussian_img),
-                                                                          (gaus_map_size, gaus_map_size)))
+            gaus_map = self.normalize(
+                cv2.resize(deepcopy(self.gaussian_img), (gaus_map_size, gaus_map_size))
+            )
             self.gaussian_maps[gaus_map_size] = np.array(gaus_map)
-        ret_value = cv2.resize(deepcopy(self.gaussian_maps[gaus_map_size]), shape, interpolation=cv2.INTER_LINEAR)
+        ret_value = cv2.resize(
+            deepcopy(self.gaussian_maps[gaus_map_size]),
+            shape,
+            interpolation=cv2.INTER_LINEAR,
+        )
         ret_value = np.array(ret_value)
         return ret_value
 
     def gen(self, score_shape, points_list):
         score_map = np.zeros(score_shape, dtype=np.float32)
         # TODO: Use polygons
-        boxes = [bounding_box.four_point_bb_to_2_point(points, round_values=True) for points in points_list]
+        boxes = [
+            bounding_box.four_point_bb_to_2_point(points, round_values=True)
+            for points in points_list
+        ]
         for box in boxes:
             point1 = [int(box[0]), int(box[1])]
             point2 = [int(box[2]), int(box[3])]
@@ -91,9 +104,14 @@ class GaussianGenerator:
 
             x_points = np.array([point1[0], point2[0]])
             y_points = np.array([point1[1], point2[1]])
-            if np.all(x_points >= score_map.shape[0]-2) or np.all(x_points <= 0) \
-                    or np.all(y_points >= score_map.shape[1]-2) or np.all(y_points <= 0)\
-                    or x_points[0] == x_points[1] or y_points[0] == y_points[1]:
+            if (
+                np.all(x_points >= score_map.shape[0] - 2)
+                or np.all(x_points <= 0)
+                or np.all(y_points >= score_map.shape[1] - 2)
+                or np.all(y_points <= 0)
+                or x_points[0] == x_points[1]
+                or y_points[0] == y_points[1]
+            ):
                 continue
 
             if min((point2[0] - point1[0], point2[1] - point1[1])) <= 3:
@@ -107,14 +125,14 @@ class GaussianGenerator:
                     point2[1] += 1
 
             # do gaussian transform
-            img_section = score_map[point1[0]:point2[0], point1[1]:point2[1]]
-            temp_gaus_map = self.get_gaus_map((img_section.shape[1], img_section.shape[0]))
-            score_map[point1[0]:point2[0], point1[1]:point2[1]] = np.where(
-                temp_gaus_map > img_section,
-                temp_gaus_map,
-                img_section
+            img_section = score_map[point1[0] : point2[0], point1[1] : point2[1]]
+            temp_gaus_map = self.get_gaus_map(
+                (img_section.shape[1], img_section.shape[0])
             )
-        score_map = np.clip(score_map, 0, 1.)
+            score_map[point1[0] : point2[0], point1[1] : point2[1]] = np.where(
+                temp_gaus_map > img_section, temp_gaus_map, img_section
+            )
+        score_map = np.clip(score_map, 0, 1.0)
         return score_map
 
 
@@ -227,7 +245,9 @@ def get_boxes_by_id(boxes, ids):
     for b_id in ids:
         for box in boxes:
             if box['id'] == b_id:
-                boxes_new.append(bounding_box.convert_polygon_box_to_4_point_bb(box['box']))
+                boxes_new.append(
+                    bounding_box.convert_polygon_box_to_4_point_bb(box['box'])
+                )
                 break
     return boxes_new
 
@@ -305,13 +325,25 @@ def reorder_box(box_list):
 def cal_point_pairs(points):
     intersection = intersection_of_diagonals(points)
     p1, p2, p3, p4 = points
-    point_pairs = [[cal_center_point([p1, p2, intersection]), cal_center_point([p3, p4, intersection])],
-                   [cal_center_point([p2, p3, intersection]), cal_center_point([p4, p1, intersection])]]
+    point_pairs = [
+        [
+            cal_center_point([p1, p2, intersection]),
+            cal_center_point([p3, p4, intersection]),
+        ],
+        [
+            cal_center_point([p2, p3, intersection]),
+            cal_center_point([p4, p1, intersection]),
+        ],
+    ]
     return point_pairs
 
 
 def cal_min_box_distance(box1, box2):
-    box_distance = [math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2) for p1 in box1 for p2 in box2]
+    box_distance = [
+        math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2)
+        for p1 in box1
+        for p2 in box2
+    ]
     return np.min(box_distance)
 
 
@@ -324,10 +356,14 @@ def intersection_of_diagonals(points):
     :return: (x, y).
     """
     [x1, y1], [x2, y2], [x3, y3], [x4, y4] = points
-    x = ((x3 - x1) * (x4 - x2) * (y2 - y1) + x1 * (y3 - y1) * (x4 - x2) - x2 * (y4 - y2) * (x3 - x1)) \
-        / ((y3 - y1) * (x4 - x2) - (y4 - y2) * (x3 - x1) + 1e-5)
-    y = (y3 - y1) * ((x4 - x2) * (y2 - y1) + (x1 - x2) * (y4 - y2)) \
-        / ((y3 - y1) * (x4 - x2) - (y4 - y2) * (x3 - x1) + 1e-5) + y1
+    x = (
+        (x3 - x1) * (x4 - x2) * (y2 - y1)
+        + x1 * (y3 - y1) * (x4 - x2)
+        - x2 * (y4 - y2) * (x3 - x1)
+    ) / ((y3 - y1) * (x4 - x2) - (y4 - y2) * (x3 - x1) + 1e-5)
+    y = (y3 - y1) * ((x4 - x2) * (y2 - y1) + (x1 - x2) * (y4 - y2)) / (
+        (y3 - y1) * (x4 - x2) - (y4 - y2) * (x3 - x1) + 1e-5
+    ) + y1
     return [x, y]
 
 
@@ -337,10 +373,16 @@ def cal_center_point(points):
 
 
 def cal_affinity_box(point_pairs1, point_pairs2):
-    areas = [cal_quadrangle_area([p1, p2, p3, p4]) for p1, p2 in point_pairs1 for p3, p4 in point_pairs2]
+    areas = [
+        cal_quadrangle_area([p1, p2, p3, p4])
+        for p1, p2 in point_pairs1
+        for p3, p4 in point_pairs2
+    ]
     max_area_index = np.argmax(areas)
-    affinity_box = [point_pairs1[max_area_index // 2][0],
-                    point_pairs1[max_area_index // 2][1],
-                    point_pairs2[max_area_index % 2][0],
-                    point_pairs2[max_area_index % 2][1]]
+    affinity_box = [
+        point_pairs1[max_area_index // 2][0],
+        point_pairs1[max_area_index // 2][1],
+        point_pairs2[max_area_index % 2][0],
+        point_pairs2[max_area_index % 2][1],
+    ]
     return np.int32(affinity_box)

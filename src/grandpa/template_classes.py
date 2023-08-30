@@ -1,18 +1,32 @@
 def register_params(template, args, kwargs):
     for arg in args:
-        if any([isinstance(arg, InitialisedNodeTemplate), isinstance(arg, ResultWrapper),
-                isinstance(arg, FuncTemplate)]):
+        if any(
+            [
+                isinstance(arg, InitialisedNodeTemplate),
+                isinstance(arg, ResultWrapper),
+                isinstance(arg, FuncTemplate),
+            ]
+        ):
             template.required_arg_nodes.append(arg)
         elif isinstance(arg, NodeTemplate):
-            raise RuntimeError("NodeTemplate must be initialised before being passed as an argument")
+            raise RuntimeError(
+                "NodeTemplate must be initialised before being passed as an argument"
+            )
         else:
             template.call_args.append(arg)
     for key, value in kwargs.items():
-        if any([isinstance(value, InitialisedNodeTemplate), isinstance(value, ResultWrapper),
-                isinstance(value, FuncTemplate)]):
+        if any(
+            [
+                isinstance(value, InitialisedNodeTemplate),
+                isinstance(value, ResultWrapper),
+                isinstance(value, FuncTemplate),
+            ]
+        ):
             template.required_kwarg_nodes[key] = value
         elif isinstance(value, NodeTemplate):
-            raise RuntimeError("NodeTemplate must be initialised before being passed as an argument")
+            raise RuntimeError(
+                "NodeTemplate must be initialised before being passed as an argument"
+            )
         else:
             template.call_kwargs[key] = value
 
@@ -61,3 +75,21 @@ class NodeTemplate:
     def __call__(self, *args, **kwargs):
         register_params(self, args, kwargs)
         return InitialisedNodeTemplate(self)
+
+
+class ComponentTemplate:
+    def __init__(self, component_func: callable, name: str):
+        self.component_func = component_func
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        return self.component_func(*args, **kwargs)
+
+
+class PipelineTemplate:
+    def __init__(self, pipeline_func: callable, name: str):
+        self.pipeline_func = pipeline_func
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        return self.pipeline_func(*args, **kwargs)
