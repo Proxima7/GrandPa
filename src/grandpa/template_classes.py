@@ -93,3 +93,14 @@ class PipelineTemplate:
 
     def __call__(self, *args, **kwargs):
         return self.pipeline_func(*args, **kwargs)
+
+class GeneratorTemplate():
+    def __init__(self, node: callable, name: str, cache_size=10, cache_access_type="QUEUE"):
+        self.node = node
+        self.name = name
+        self.cache_size = cache_size
+        self.cache_access_type = cache_access_type
+        self.queue = []
+
+    def __call__(self, *args, **kwargs):
+        return self.node(*args, **kwargs)
