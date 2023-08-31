@@ -1,11 +1,15 @@
-from grandpa.decorators import Component, Node, Pipeline
+from grandpa.decorators import Component, Node, Pipeline, Generator
 from grandpa.template_parser import TemplateParser
+from random import Random
 
+@Generator("generator")
+@Node("random_number")
+def gen_random_from_node():
+    return Random().randint(0, 100)
 
 @Node("add")
 def add(a, b):
     return a + b
-
 
 @Node("subtract")
 def subtract(a, b):
@@ -51,11 +55,21 @@ def test_pipeline():
     b = even_number(a)
     c = TestNode(b, 3)
     d = c(4)
+
     return d
+@Pipeline("gen_pipe")
+def test_generators():
+    g = gen_random_from_node()
+    print(f"rnd from node {g}")
+    return g
 
 
 if __name__ == "__main__":
     pipeline = test_pipeline()
     parser = TemplateParser()
     pipeline_result = parser(pipeline)
+
+    gen_pipe = test_generators()
+    gen_pipe_result = parser(gen_pipe)
+
     print()
