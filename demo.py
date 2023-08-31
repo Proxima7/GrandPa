@@ -1,4 +1,5 @@
 from grandpa.decorators import Component, Node, Pipeline
+from grandpa.template_parser import TemplateParser
 
 
 @Node("add")
@@ -50,9 +51,11 @@ def test_pipeline():
     b = even_number(a)
     c = TestNode(b, 3)
     d = c(4)
-    print()
     return d
 
 
 if __name__ == "__main__":
-    test_pipeline()
+    pipeline = test_pipeline()
+    parser = TemplateParser()
+    pipeline_result = parser(pipeline)
+    print()

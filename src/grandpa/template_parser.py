@@ -12,17 +12,17 @@ class TemplateParser:
             return self.init_node(node.origin)[0], "Result"
         else:
             arg_nodes = []
-            for node in node.required_arg_nodes:
-                if node not in self.initialised_nodes:
-                    arg_nodes.append(self.init_node(node))
+            for req_node in node.required_arg_nodes:
+                if req_node not in self.initialised_nodes:
+                    arg_nodes.append(self.init_node(req_node))
                 else:
-                    arg_nodes.append(self.initialised_nodes[node])
+                    arg_nodes.append(self.initialised_nodes[req_node])
             kwarg_nodes = {}
-            for key, node in node.required_kwarg_nodes.items():
-                if node not in self.initialised_nodes:
-                    kwarg_nodes[key] = self.init_node(node)
+            for key, req_node in node.required_kwarg_nodes.items():
+                if req_node not in self.initialised_nodes:
+                    kwarg_nodes[key] = self.init_node(req_node)
                 else:
-                    kwarg_nodes[key] = self.initialised_nodes[node]
+                    kwarg_nodes[key] = self.initialised_nodes[req_node]
             if isinstance(node, InitialisedNodeTemplate):
                 (
                     call_args,
@@ -31,7 +31,7 @@ class TemplateParser:
                     required_kwarg_nodes,
                 ) = self.get_node_args(arg_nodes, kwarg_nodes, node)
                 init_cls, _ = self.init_node(node.node_template)
-                node = Node(
+                f_node = Node(
                     node.node_template.name,
                     init_cls,
                     call_args,
@@ -39,8 +39,8 @@ class TemplateParser:
                     required_arg_nodes,
                     required_kwarg_nodes,
                 )
-                self.initialised_nodes[node] = node
-                return node, "Node"
+                self.initialised_nodes[node] = f_node
+                return f_node, "Node"
             elif isinstance(node, NodeTemplate):
                 (
                     call_args,
@@ -49,9 +49,9 @@ class TemplateParser:
                     required_kwarg_nodes,
                 ) = self.get_node_args(arg_nodes, kwarg_nodes, node)
                 for req_arg_node in required_arg_nodes:
-                    call_args.append(req_arg_node)
+                    call_args.append(req_arg_node())
                 for key, req_kwarg_node in required_kwarg_nodes.items():
-                    call_kwargs[key] = req_kwarg_node
+                    call_kwargs[key] = req_kwarg_node()
                 init_cls = node.cls(*call_args, **call_kwargs)
                 return init_cls, "initialised_cls"
             elif isinstance(node, FuncTemplate):
@@ -61,7 +61,7 @@ class TemplateParser:
                     required_arg_nodes,
                     required_kwarg_nodes,
                 ) = self.get_node_args(arg_nodes, kwarg_nodes, node)
-                node = Node(
+                f_node = Node(
                     node.name,
                     node.function,
                     call_args,
@@ -69,8 +69,8 @@ class TemplateParser:
                     required_arg_nodes,
                     required_kwarg_nodes,
                 )
-                self.initialised_nodes[node] = node
-                return node, "Node"
+                self.initialised_nodes[node] = f_node
+                return f_node, "Node"
             else:
                 raise RuntimeError(f"Unknown node type: {type(node)}")
 
