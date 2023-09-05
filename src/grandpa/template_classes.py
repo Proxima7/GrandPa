@@ -64,7 +64,7 @@ class InitialisedNodeTemplate:
 
 
 class NodeTemplate:
-    def __init__(self, cls: object, name: str):
+    def __init__(self, cls, name: str):
         self.cls = cls
         self.name = name
         self.required_arg_nodes = []
