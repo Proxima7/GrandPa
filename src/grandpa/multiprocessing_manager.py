@@ -1,6 +1,7 @@
-import pickle
+import multiprocessing
+
+import dill
 import random
-import threading
 import time
 from multiprocessing import Queue, Process
 
@@ -16,15 +17,13 @@ class MultiprocessingManager:
         self.finished_tasks = {}
 
     def start_processes(self):
-        for _ in range(4):
-            p = Process(target=self.process_in_queue)
-            p.is_grandpa_process = True
-            p.start()
+        pass
 
     def add_task(self, target, *args, **kwargs):
         task_id = random.randint(0, 1000000000)
         task = Task(target, task_id, *args, **kwargs)
-        self.task_queue_in.put(task)
+        task.generate_result()
+        self.finished_tasks[task_id] = task.get_result()
         return task_id
 
     def get_task_result(self, task_id):

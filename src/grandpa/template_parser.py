@@ -1,3 +1,7 @@
+import multiprocessing
+
+import dill
+
 from grandpa.node import Node
 from grandpa.routing import Router
 from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
@@ -95,7 +99,16 @@ class TemplateParser:
                 required_kwarg_nodes[key] = (kwarg_node[0], True)
         return call_args, call_kwargs, required_arg_nodes, required_kwarg_nodes
 
+    def create_process_graph(self, final_node):
+        unpickled_node = dill.loads(final_node)
+        final_node = self.init_node(unpickled_node)
+        print("Graph created")
+
     def __call__(self, final_node):
+        pickled_node = dill.dumps(final_node)
+        for _ in range(4):
+            process = multiprocessing.Process(target=self.create_process_graph, args=(pickled_node,))
+            process.start()
         final_node, node_type = self.init_node(final_node)
         if node_type == "Node":
             return self.router(final_node, True)

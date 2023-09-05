@@ -35,6 +35,9 @@ class ResultWrapper:
     def __init__(self, origin):
         self.origin = origin
 
+    def __reduce__(self):
+        return self.origin, ()
+
 
 class FuncTemplate:
     def __init__(self, function: callable, name: str):
@@ -49,6 +52,9 @@ class FuncTemplate:
         register_params(self, args, kwargs)
         return ResultWrapper(self)
 
+    def __reduce__(self):
+        return self.function, ()
+
 
 class InitialisedNodeTemplate:
     def __init__(self, node_template):
@@ -61,6 +67,9 @@ class InitialisedNodeTemplate:
     def __call__(self, *args, **kwargs):
         register_params(self, args, kwargs)
         return ResultWrapper(self)
+
+    def __reduce__(self):
+        return self.node_template.cls, ()
 
 
 class NodeTemplate:
@@ -76,6 +85,9 @@ class NodeTemplate:
         register_params(self, args, kwargs)
         return InitialisedNodeTemplate(self)
 
+    def __reduce__(self):
+        return self.cls, ()
+
 
 class ComponentTemplate:
     def __init__(self, component_func: callable, name: str):
@@ -85,6 +97,9 @@ class ComponentTemplate:
     def __call__(self, *args, **kwargs):
         return self.component_func(*args, **kwargs)
 
+    def __reduce__(self):
+        return self.component_func, ()
+
 
 class PipelineTemplate:
     def __init__(self, pipeline_func: callable, name: str):
@@ -93,3 +108,6 @@ class PipelineTemplate:
 
     def __call__(self, *args, **kwargs):
         return self.pipeline_func(*args, **kwargs)
+
+    def __reduce__(self):
+        return self.pipeline_func, ()

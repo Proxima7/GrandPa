@@ -24,13 +24,23 @@ class Node:
         args = []
         kwargs = {}
         for node in self.required_arg_nodes:
-            args.append(self.switch.add_task(self.switch, *node))
+            if node[1]:
+                args.append(self.switch(*node))
+            else:
+                node = self.switch(node[0], True)
+                args.append(self.switch.add_task(node))
         for key, node in self.required_kwarg_nodes.items():
-            kwargs[key] = self.switch.add_task(self.switch, *node)
+            if node[1]:
+                kwargs[key] = self.switch(*node)
+            else:
+                node = self.switch(node[0], True)
+                kwargs[key] = self.switch.add_task(node)
         for i in range(len(args)):
-            args[i] = self.switch.get_task_result(args[i])
+            if type(args[i]) == int:
+                args[i] = self.switch.get_task_result(args[i])
         for key, value in kwargs.items():
-            kwargs[key] = self.switch.get_task_result(value)
+            if type(value) == int:
+                kwargs[key] = self.switch.get_task_result(value)
         args.extend(self.call_args)
         kwargs.update(self.call_kwargs)
         return self.executable_func(*args, **kwargs)
