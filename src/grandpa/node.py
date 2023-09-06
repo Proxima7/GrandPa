@@ -17,7 +17,7 @@ class Node:
         self.call_kwargs = call_kwargs
         self.required_arg_nodes = required_arg_nodes
         self.required_kwarg_nodes = required_kwarg_nodes
-        self.address = name + str(id(self))
+        self.address = name
         self.switch = Switch(self.address, router, self)
 
     def __call__(self, call_method: str = None):
@@ -27,14 +27,12 @@ class Node:
             if node[1]:
                 args.append(self.switch(*node))
             else:
-                node = self.switch(node[0], True)
-                args.append(self.switch.add_task(node))
+                args.append(self.switch.add_task(node[0]))
         for key, node in self.required_kwarg_nodes.items():
             if node[1]:
                 kwargs[key] = self.switch(*node)
             else:
-                node = self.switch(node[0], True)
-                kwargs[key] = self.switch.add_task(node)
+                kwargs[key] = self.switch.add_task(node[0])
         for i in range(len(args)):
             if type(args[i]) == int:
                 args[i] = self.switch.get_task_result(args[i])

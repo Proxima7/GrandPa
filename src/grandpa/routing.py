@@ -12,7 +12,9 @@ class Switch:
         self.node = node
         self.router.register(self, address)
 
-    def __call__(self, address: str, return_node: bool = False, call_method: str = None):
+    def __call__(
+        self, address: str, return_node: bool = False, call_method: str = None
+    ):
         """
         Connects to another node. Returns the result of the node if return_node is False, else returns the node itself.
         You can also specify a method to call on the node.
@@ -41,10 +43,9 @@ class Switch:
 
 
 class Router(Switch):
-    def __init__(self):
+    def __init__(self, multiprocessing_manager: MultiprocessingManager):
         self.address_table = {}
-        self.multiprocessing_manager = MultiprocessingManager()
-        self.multiprocessing_manager.start_processes()
+        self.multiprocessing_manager = multiprocessing_manager
         super().__init__(None, self, None)
 
     def get_switch(self, address):

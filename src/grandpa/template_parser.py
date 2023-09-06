@@ -1,7 +1,6 @@
-import multiprocessing
-
 import dill
 
+from grandpa.multiprocessing_manager import MultiprocessingManager
 from grandpa.node import Node
 from grandpa.routing import Router
 from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
@@ -11,7 +10,9 @@ from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
 class TemplateParser:
     def __init__(self):
         self.initialised_nodes = {}
-        self.router = Router()
+        self.multiprocessing_manager = MultiprocessingManager()
+        self.router = Router(self.multiprocessing_manager)
+        self.multiprocessing_manager.router = self.router
 
     def init_node(self, node):
         if isinstance(node, ResultWrapper):
@@ -101,15 +102,14 @@ class TemplateParser:
 
     def create_process_graph(self, final_node):
         unpickled_node = dill.loads(final_node)
-        final_node = self.init_node(unpickled_node)
-        print("Graph created")
+        self.init_node(unpickled_node)
 
-    def __call__(self, final_node):
-        pickled_node = dill.dumps(final_node)
-        for _ in range(4):
-            process = multiprocessing.Process(target=self.create_process_graph, args=(pickled_node,))
-            process.start()
-        final_node, node_type = self.init_node(final_node)
+    def __call__(self, workflow):
+        pickled_workflow = dill.dumps(workflow)
+        self.multiprocessing_manager.start_processes(
+            self.create_process_graph, pickled_workflow
+        )
+        final_node, node_type = self.init_node(workflow())
         if node_type == "Node":
             return self.router(final_node, True)
         elif node_type == "Result":
