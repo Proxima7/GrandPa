@@ -35,7 +35,7 @@ class Component:
             raise RuntimeError("Component decorator can only be used on functions.")
 
 
-class Pipeline:
+class Workflow:
     def __init__(self, name: str, *args, **kwargs):
         self.name = name
         self.args = args

@@ -1,3 +1,5 @@
+import time
+
 import dill
 
 from grandpa.multiprocessing_manager import MultiprocessingManager
@@ -109,6 +111,7 @@ class TemplateParser:
         self.multiprocessing_manager.start_processes(
             self.create_process_graph, pickled_workflow
         )
+        self.multiprocessing_manager.start_threads()
         final_node, node_type = self.init_node(workflow())
         if node_type == "Node":
             return self.router(final_node, True)

@@ -1,53 +1,68 @@
-from grandpa.decorators import Component, Node, Pipeline
+import glob
+
+import cv2
+
+from grandpa.decorators import Component, Node, Workflow
 
 
-@Node("add")
-def add(a, b):
-    return a + b
+def sum_array(arr):
+    total = 0
+    for item in arr:
+        total += item
+    return total
 
 
-@Node("subtract")
-def subtract(a, b):
-    return a - b
+@Node("sum_array_node")
+def sum_array_node(arr):
+    total = 0
+    for item in arr:
+        total += item
+    return total
 
 
-@Node("multiply")
-def multiply(a, b):
-    return a * b
+def run_sum_array():
+    test_array = [i for i in range(1, 1000000)]
+    result = sum_array(test_array)
+    return result
 
 
-@Node("divide")
-def divide(a, b):
-    return a / b
+@Workflow("sum_array_workflow")
+def sum_array_workflow():
+    test_array = [i for i in range(1, 1000000)]
+    result = sum_array_node(test_array)
+    return result
 
 
-@Node("round")
-def round_(a):
-    return round(a)
+def process_image(image_path):
+    img = cv2.imread(image_path)
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cv2.imwrite(f'gray_{image_path}', gray_img)
 
 
-@Component("even_number")
-def even_number(a):
-    divide_by_two = divide(a, 2)
-    round_divide_by_two = round_(divide_by_two)
-    multiply_by_two = multiply(round_divide_by_two, 2)
-    return multiply_by_two
+def process_images():
+    image_paths = glob.glob('images/**/*.jpg')
+    for path in image_paths:
+        process_image(path)
 
 
-@Node("test")
-class TestNode:
-    def __init__(self, value_a, value_b):
-        self.value_a = value_a
-        self.value_b = value_b
-
-    def __call__(self, value_c):
-        return self.value_a + self.value_b + value_c
+@Node("process_image")
+def process_image_node(image_path):
+    img = cv2.imread(image_path)
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cv2.imwrite(f'gray_{image_path}', gray_img)
 
 
-@Pipeline("test_pipeline")
-def test_pipeline():
-    a = add(1, 2)
-    b = even_number(a)
-    c = TestNode(b, 3)
-    d = c(4)
-    return d
+@Node("result")
+def result_node(*results):
+    return results
+
+
+@Workflow("process_images")
+def process_images_workflow():
+    image_paths = glob.glob('images/**/*.jpg')
+    path_nodes = [process_image_node(path) for path in image_paths]
+    return result_node(*path_nodes)
+
+
+
+
