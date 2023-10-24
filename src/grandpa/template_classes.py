@@ -49,8 +49,9 @@ class FuncTemplate:
         self.call_kwargs = {}
 
     def __call__(self, *args, **kwargs):
-        register_params(self, args, kwargs)
-        return ResultWrapper(self)
+        loc_func_temp = FuncTemplate(self.function, self.name)
+        register_params(loc_func_temp, args, kwargs)
+        return ResultWrapper(loc_func_temp)
 
     def __reduce__(self):
         return self.function, ()
@@ -65,8 +66,9 @@ class InitialisedNodeTemplate:
         self.call_kwargs = {}
 
     def __call__(self, *args, **kwargs):
-        register_params(self, args, kwargs)
-        return ResultWrapper(self)
+        loc_init_node_temp = InitialisedNodeTemplate(self.node_template)
+        register_params(loc_init_node_temp, args, kwargs)
+        return ResultWrapper(loc_init_node_temp)
 
     def __reduce__(self):
         return self.node_template.cls, ()
@@ -82,8 +84,9 @@ class NodeTemplate:
         self.call_kwargs = {}
 
     def __call__(self, *args, **kwargs):
-        register_params(self, args, kwargs)
-        return InitialisedNodeTemplate(self)
+        loc_node_temp = NodeTemplate(self.cls, self.name)
+        register_params(loc_node_temp, args, kwargs)
+        return InitialisedNodeTemplate(loc_node_temp)
 
     def __reduce__(self):
         return self.cls, ()
