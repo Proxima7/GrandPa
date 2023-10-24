@@ -1,4 +1,5 @@
 import glob
+import os.path
 
 import cv2
 
@@ -36,7 +37,8 @@ def sum_array_workflow():
 def process_image(image_path):
     img = cv2.imread(image_path)
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite(f'gray_{image_path}', gray_img)
+    os.makedirs(f'gray_{os.path.dirname(os.path.relpath(image_path))}', exist_ok=True)
+    cv2.imwrite(f'gray_{os.path.relpath(image_path)}', gray_img)
 
 
 def process_images():
@@ -49,7 +51,8 @@ def process_images():
 def process_image_node(image_path):
     img = cv2.imread(image_path)
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite(f'gray_{image_path}', gray_img)
+    os.makedirs(f'gray_{os.path.dirname(os.path.relpath(image_path))}', exist_ok=True)
+    cv2.imwrite(f'gray_{os.path.relpath(image_path)}', gray_img)
 
 
 @Node("result")
