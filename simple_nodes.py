@@ -45,3 +45,12 @@ def remainder_workflow():
     return remainder_value
 
 
+@Node("class_example")
+class ClassExample:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def add(self, c):
+        return self.a + self.b + c
+
