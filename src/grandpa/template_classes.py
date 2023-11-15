@@ -1,19 +1,9 @@
 def register_params(template, args, kwargs):
-    for arg in args:
-        if any(
-            [
-                isinstance(arg, InitialisedNodeTemplate),
-                isinstance(arg, ResultWrapper),
-                isinstance(arg, FuncTemplate),
-            ]
-        ):
-            template.required_arg_nodes.append(arg)
-        elif isinstance(arg, NodeTemplate):
-            raise RuntimeError(
-                "NodeTemplate must be initialised before being passed as an argument"
-            )
-        else:
-            template.call_args.append(arg)
+    set_args(args, template)
+    set_kwargs(kwargs, template)
+
+
+def set_kwargs(kwargs, template):
     for key, value in kwargs.items():
         if any(
             [
@@ -29,6 +19,24 @@ def register_params(template, args, kwargs):
             )
         else:
             template.call_kwargs[key] = value
+
+
+def set_args(args, template):
+    for arg in args:
+        if any(
+            [
+                isinstance(arg, InitialisedNodeTemplate),
+                isinstance(arg, ResultWrapper),
+                isinstance(arg, FuncTemplate),
+            ]
+        ):
+            template.required_arg_nodes.append(arg)
+        elif isinstance(arg, NodeTemplate):
+            raise RuntimeError(
+                "NodeTemplate must be initialised before being passed as an argument"
+            )
+        else:
+            template.call_args.append(arg)
 
 
 class ResultWrapper:

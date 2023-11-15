@@ -1,5 +1,4 @@
 import inspect
-from multiprocessing import current_process
 
 from grandpa.template_classes import (ComponentTemplate, FuncTemplate,
                                       NodeTemplate, PipelineTemplate)

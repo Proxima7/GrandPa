@@ -1,8 +1,8 @@
 import multiprocessing
 import queue
 import random
-import time
 import threading
+import time
 
 
 class MultiprocessingManager:

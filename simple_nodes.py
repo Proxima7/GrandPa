@@ -1,6 +1,6 @@
 import math
 
-from grandpa import Node, Component, Workflow
+from grandpa import Component, Node, Workflow
 
 
 @Node("sum_values")
@@ -53,4 +53,3 @@ class ClassExample:
 
     def add(self, c):
         return self.a + self.b + c
-

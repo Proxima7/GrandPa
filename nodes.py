@@ -65,7 +65,3 @@ def process_images_workflow():
     image_paths = glob.glob('images/**/*.jpg')
     path_nodes = [process_image_node(path) for path in image_paths]
     return result_node(*path_nodes)
-
-
-
-

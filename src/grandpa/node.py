@@ -21,24 +21,38 @@ class Node:
         self.switch = Switch(self.address, router, self)
 
     def __call__(self, call_method: str = None):
-        args = []
+        args = self.__load_args()
+        kwargs = self.__load_kwargs()
+        self.__finish_tasks_for_args(args)
+        self.__finish_tasks_for_kwargs(kwargs)
+        args.extend(self.call_args)
+        kwargs.update(self.call_kwargs)
+        return self.executable_func(*args, **kwargs)
+
+    def __finish_tasks_for_kwargs(self, kwargs):
+        for key, value in kwargs.items():
+            if type(value) == int:
+                kwargs[key] = self.switch.get_task_result(value)
+
+    def __finish_tasks_for_args(self, args):
+        for i in range(len(args)):
+            if type(args[i]) == int:
+                args[i] = self.switch.get_task_result(args[i])
+
+    def __load_kwargs(self):
         kwargs = {}
-        for node in self.required_arg_nodes:
-            if node[1]:
-                args.append(self.switch(*node))
-            else:
-                args.append(self.switch.add_task(node[0]))
         for key, node in self.required_kwarg_nodes.items():
             if node[1]:
                 kwargs[key] = self.switch(*node)
             else:
                 kwargs[key] = self.switch.add_task(node[0])
-        for i in range(len(args)):
-            if type(args[i]) == int:
-                args[i] = self.switch.get_task_result(args[i])
-        for key, value in kwargs.items():
-            if type(value) == int:
-                kwargs[key] = self.switch.get_task_result(value)
-        args.extend(self.call_args)
-        kwargs.update(self.call_kwargs)
-        return self.executable_func(*args, **kwargs)
+        return kwargs
+
+    def __load_args(self):
+        args = []
+        for node in self.required_arg_nodes:
+            if node[1]:
+                args.append(self.switch(*node))
+            else:
+                args.append(self.switch.add_task(node[0]))
+        return args

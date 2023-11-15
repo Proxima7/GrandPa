@@ -1,7 +1,8 @@
 import time
 
 from grandpa.template_parser import TemplateParser
-from nodes import run_sum_array, sum_array_workflow, process_images, process_images_workflow
+from nodes import (process_images, process_images_workflow, run_sum_array,
+                   sum_array_workflow)
 
 
 def compare_sum_array():
