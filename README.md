@@ -4,7 +4,6 @@
 Build and run workflows at any scale. Graph-and-Parser is a python-based framework that allows for the intuitive creation of workflows and data projects as Directed Acyclic Graphs (DAGs). Run workflows efficient either locally in an IDE or on a large scale powered by Kubernetes (& Kubeflow).
 
 Our promise for machine learning:
-- More than 1000x faster training of models than on a local workstation.
 - Fully solve training bottlenecks by distributing workloads in the cloud.
 - Efficient and simple coding of machine learning pipelines.
 - Train huge neural networks like GPT models efficiently in a Kubernetes cluster.
@@ -41,224 +40,87 @@ We highly recommend to use GrandPa with other Grand* extensions like GrandML and
 This development guide offers detailed information about how to use the framework. 
 In addition, it offers information about contributing code, documentation, tests and more.
 
-#### Getting started 
-
-These snippets explain the basic usage of GrandPa:
-
-Download a workflow from GrandHub. To do so, run in your cli:
-`` grandpa install MNIST-classifier-mobilenetv2``
-
-To execute the workflow locally run:
-`` python -main.py ``
-or open the main.py file of the workflow and run it in your IDE.
-
-To execute a workflow in kubernetes run:
-.....
-
-To write custom nodes use:
-To create a workflow using GrandPa, simply define your nodes as Python functions and use the @node decorator to register them with GrandPa. Then, use the @workflow decorator to define your workflow as a DAG, specifying the nodes and their dependencies. Finally, run the workflow using the execute method.
-
 ## Installation
 To install GrandPa, simply run:
 
 `` pip install grandpa ``
 
-To install GrandPa only for local execution of workflows use:
-
-`` pip install grandpa-local``
-
-To install GrandPa core without any extensions like GrandML, GrandHub, Kubeflow run:
-
-`` pip install grandpa-core``
-
-Note that this version does not allow the execution of workflows in a cluster, offers no standard nodes frequently used in ML and has no GrandHub access.
-
-
-
-### visualization
-To manage and edit your workflows in the browser push them to grandhub from your terminal run:
-grandpa push "grandhub_project_id"
-You can then open the project on grandhub.
-
-
-## Execution in Kubernetes: Setup
-
-To execute workflows in a distributed environment it is required that you setup your kubernetes cluster first. 
-1. Setup Kubeflow by following the instructions of Kubeflow. 
-2. We provide terraform scripts for X.. Install simply with...
-
-
 ## Usage
 
 ### Define a Node
-Each Node requires the super.init call to be made with the **kwargs parameter. 
-This is used to pass the node's name and other parameters to the super class. 
-A run method also needs to be defined. This is the method that will be called when the node is executed.
+To define a Node, you can add the @Node decorator to any class or function. A class needs to have a __init__ and 
+__call__ method defined.
 ```
-class Example(Node):
-    def __init__(self, a, b, **kwargs):
-        super().__init__(**kwargs)
-        
-    def run(self, *args, **kwargs):
+@Node("node_name")
+class Example1:
+    def __init__(self, a, b):
         pass
+        
+    def __call__(self, *args, **kwargs):
+        pass
+        
+        
+@Node("node_name")
+def example2(a, b):
+    pass
 ```
 
-### Define a Graph
-A graph is a collection of nodes. The graph is responsible for executing the nodes in the correct order.
+### Define a Component
+A component is a connected collection of nodes. It is defined by writing a method to connect the nodes to one another.
 ```
-graph_def = {
-    "__node_name__": {
-        "node": "__node_import_path__",
-        "node_settings": {
-            "__init_param__": "__init_value__,
-        }, 
-        "params": {
-            "__runtime_param__": "__param_value__",
-        }
-    }
-}
+@Component("component_name")
+def example_component(a, b):
+    node1 = Example1(a, b)
+    node2 = Example2(a, node1())
+    return node2()
 ```
-An example looks like this:
+
+### Define a Workflow
+A workflow is a connected collection of components and nodes. It is defined by writing a method to connect the 
+components and nodes to one another. A workflow currently can not have any parameters.
 ```
-graph_def = {
-    "example": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": 2,
-        }, 
-        "params": {
-            "c": 3,
-        }
-    }
-}
+@Workflow("workflow_name")
+def example_workflow():
+    a = 5
+    b = 10
+    component1 = ExampleComponent(a, b)
+    node1 = Example1(a, component1())
+    return node1()
 ```
-Instead of hardcoding the values for the node settings and params, you can also reference other nodes.
-```
-graph_def = {
-    "example": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": 2,
-        }, 
-        "params": {
-            "c": 3,
-        }
-    },
-    "example2": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": 2,
-        }, 
-        "params": {
-            "c": "//example",
-        }
-    }
-}
-```
-You can also pass a reference of another node using ```node://__node_name__```. This will pass the node object to the node's run or init method.
-```
-graph_def = {
-    "example": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": "node://example2",
-        }, 
-        "params": {
-            "c": 3,
-        }
-    },
-    "example2": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": 2,
-        }, 
-        "params": {
-            "c": 3,
-        }
-    }
-}
-```
-Instead of hardcoding setting values in teh graph, you can also reference a value in the settings file using ```settings://__setting_name__```.
-```
-graph_def = {
-    "example": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": "node://example2",
-        }, 
-        "params": {
-            "c": "settings:example/c",
-        }
-    },
-    "example2": {
-        "node": "example.Example",
-        "node_settings": {
-            "a": 1,
-            "b": 2,
-        }, 
-        "params": {
-            "c": 3,
-        }
-    }
-}
-```
-The corresponding settings file would look like this:
-```
-graph_settings: {
-    "example": {
-        "c": 3,
-    }
-}
-```
+
 ### Execute a Graph
 ```
-from grandpa import GraphRuntime
-from graph_def import graph_def
-from graph_settings import graph_settings
+from grandpa import TemplateParser
 
 
-gr = GraphRuntime()
-gr.add_graph("example", graph_def, graph_settings)
-gr.init_graph("example")
-result = gr.router.get_value("//example_node")
-print(result)
-```
-
-#### Other useful features
-##### Use tasks to automatically run jobs in parallel
-```
-class Example(Node):
-    def __init__(self, a, b, **kwargs):
-        super().__init__(**kwargs)
-        
-    def method_with_long_execution_time(self, *args, **kwargs):
-        time.sleep(10)
-        
-    def run(self, *args, **kwargs):
-        tasks = [self.switch.execute_task(self.method_with_long_execution_time) for i in range(10)]
-        return [task.get_result() for task in tasks]  
-```
-##### Queue data in a worker queue to always have data available once the node is called
-```
-class Example(Node):
-    def __init__(self, a, b, **kwargs):
-        super().__init__(**kwargs)
-        self.queue = self.switch.add_worker_queue(self.method_with_long_execution_time)
-        
-    def method_with_long_execution_time(self, *args, **kwargs):
-        time.sleep(10)
-        return 5
-        
-    def run(self, *args, **kwargs):
-        return self.queue.get()
+parser = TemplateParser()
+pipeline_result = parser(example_workflow)
 ```
 
 
+## High level technical functionality
 
+In general, GrandPa works based on a 3-steep process. Understand the high level functionality is crucial for 
+understanding the code.
+
+### Step 1: Template creation
+The python code that needs to be executed is written by the user and annotated with the grandpa decorators. These 
+decorators wrap the code into Grandpa Templates, which enables us to intercept any calls to the class/function.
+
+### Step 2: Creating the DAG
+The user not gives a workflow to the GrandPa TemplateParser. The Grandpa Parser then makes a call to the underlying 
+function. However, since all/most parts of the function are Nodes (or Components, which technically are identical to 
+pipelines), the code will not be directly executed. Instead, the GrandPa Templates will intercept the call and store
+the information about the execution dependencies, which creates a DAG.
+
+### Step 3: Executing the DAG
+The execution of the DAG happens in a decentralised manner. This means that each node is responsible to gather its own
+dependencies, and it does so by utilising the multiprocessing manager for parallelization. Therefore, in order to 
+execute the entire DAG, only the last nodes needs to be called, and everything else happens "automatically".
+
+### Bonus: How multiprocessing is implemented
+As you might be aware, multiprocessing in Python can be prone to errors. For this reason, multiprocessing in Grandpa
+does not directly interact with classes or functions. Instead, each process replicates the entire graph. In order to
+request a result from a different process, the unique name of the node is passed to the process, which is then mapped
+to the corresponding node in the local process graph.
 

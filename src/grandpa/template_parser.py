@@ -8,6 +8,9 @@ from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
 
 
 class TemplateParser:
+    """
+    TemplateParser class. Used to parse a workflow template into an executable pipeline.
+    """
     def __init__(self):
         self.initialised_nodes = {}
         self.multiprocessing_manager = MultiprocessingManager()
@@ -15,6 +18,19 @@ class TemplateParser:
         self.multiprocessing_manager.router = self.router
 
     def init_node(self, node):
+        """
+        Recursive function to initialise node templates. Will check the prerequisites of the node template and
+        initialise them if they have not already been initialised. Will then initialise the node template itself.
+        Args:
+            node: Node template to initialise (Can be a NodeTemplate, InitialisedNodeTemplate, ResultWrapper or
+            FuncTemplate)
+
+        Returns:
+            init_result: Result of the initialisation (e.g. the result for ResultWrapper, or the initialised node for
+            NodeTemplate or FuncTemplate)
+            type_of_result: Type of the result (e.g. "Result" for ResultWrapper, "Node" for NodeTemplate or
+            FuncTemplate)
+        """
         if isinstance(node, ResultWrapper):
             return self.init_node(node.origin)[0], "Result"
         else:
@@ -30,6 +46,18 @@ class TemplateParser:
                 raise RuntimeError(f"Unknown node type: {type(node)}")
 
     def __init_node_function(self, arg_nodes, kwarg_nodes, node):
+        """
+        Initialises a FuncTemplate. Will check the prerequisites of the node template and initialise them if they have
+        not already been initialised. Will then initialise the node template itself.
+        Args:
+            arg_nodes: Required arg nodes for the node template.
+            kwarg_nodes: Required kwarg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            init_result: Result of the initialisation (in this case initialised node which wraps the function)
+            type_of_result: Type of the result (in this case "Node")
+        """
         (
             call_args,
             call_kwargs,
@@ -49,6 +77,18 @@ class TemplateParser:
         return f_node.address, "Node"
 
     def __init_node_cls_init(self, arg_nodes, kwarg_nodes, node):
+        """
+        Initialises a NodeTemplate. Will check the prerequisites of the node template and initialise them if they have
+        not already been initialised. Will then initialise the node template itself.
+        Args:
+            arg_nodes: Required arg nodes for the node template.
+            kwarg_nodes: Required kwarg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            init_result: Result of the initialisation (in this case instance of the class wrapped by the Node)
+            type_of_result: Type of the result (in this case "initialised_cls")
+        """
         (
             call_args,
             call_kwargs,
@@ -63,6 +103,18 @@ class TemplateParser:
         return init_cls, "initialised_cls"
 
     def __init_node_cls_call(self, arg_nodes, kwarg_nodes, node):
+        """
+        Initialises a InitialisedNodeTemplate. Will check the prerequisites of the node template and initialise them if
+        they have not already been initialised. Will then initialise the node template itself.
+        Args:
+            arg_nodes: Required arg nodes for the node template.
+            kwarg_nodes: Required kwarg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            init_result: Result of the initialisation (in this case Node wrapping an instance of a class)
+            type_of_result: Type of the result (in this case "Node")
+        """
         (
             call_args,
             call_kwargs,
@@ -83,6 +135,14 @@ class TemplateParser:
         return f_node.address, "Node"
 
     def __kwargs_get_required_nodes(self, node):
+        """
+        Gets the required kwarg nodes for a node template and makes sure they are initialised.
+        Args:
+            node: Node template to get the required kwarg nodes for.
+
+        Returns:
+            kwarg_nodes: Required kwarg nodes for the node template.
+        """
         kwarg_nodes = {}
         for key, req_node in node.required_kwarg_nodes.items():
             if req_node not in self.initialised_nodes:
@@ -92,6 +152,14 @@ class TemplateParser:
         return kwarg_nodes
 
     def __args_get_required_nodes(self, node):
+        """
+        Gets the required arg nodes for a node template and makes sure they are initialised.
+        Args:
+            node: Node template to get the required arg nodes for.
+
+        Returns:
+            arg_nodes: Required arg nodes for the node template.
+        """
         arg_nodes = []
         for req_node in node.required_arg_nodes:
             if req_node not in self.initialised_nodes:
@@ -101,12 +169,35 @@ class TemplateParser:
         return arg_nodes
 
     def get_node_parameters(self, arg_nodes, kwarg_nodes, node):
+        """
+        Gets the parameters for a node template.
+        Args:
+            arg_nodes: Required arg nodes for the node template.
+            kwarg_nodes: Required kwarg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            call_args: Arguments to pass to the node template.
+            call_kwargs: Keyword arguments to pass to the node template.
+            required_arg_nodes: Required arg nodes for the node template.
+            required_kwarg_nodes: Required kwarg nodes for the node template.
+        """
         call_args, required_arg_nodes = self.__get_node_args(arg_nodes, node)
         call_kwargs, required_kwarg_nodes = self.__get_node_kwargs(kwarg_nodes, node)
         return call_args, call_kwargs, required_arg_nodes, required_kwarg_nodes
 
     @staticmethod
     def __get_node_kwargs(kwarg_nodes, node):
+        """
+        Gets the required kwarg nodes for a node template in the desired format.
+        Args:
+            kwarg_nodes: Required kwarg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            call_kwargs: Keyword arguments to pass to the node template.
+            required_kwarg_nodes: Required kwarg nodes for the node template.
+        """
         call_kwargs = node.call_kwargs
         required_kwarg_nodes = {}
         for key, kwarg_node in kwarg_nodes.items():
@@ -118,6 +209,16 @@ class TemplateParser:
 
     @staticmethod
     def __get_node_args(arg_nodes, node):
+        """
+        Gets the required arg nodes for a node template in the desired format.
+        Args:
+            arg_nodes: Required arg nodes for the node template.
+            node: Node template to initialise.
+
+        Returns:
+            call_args: Arguments to pass to the node template.
+            required_arg_nodes: Required arg nodes for the node template.
+        """
         call_args = node.call_args
         required_arg_nodes = []
         for arg_node in arg_nodes:
@@ -128,10 +229,27 @@ class TemplateParser:
         return call_args, required_arg_nodes
 
     def create_process_graph(self, final_node):
+        """
+        Creates the executable graph for a different process.
+        Args:
+            final_node: Final node in the graph.
+
+        Returns:
+            None
+        """
         unpickled_node = dill.loads(final_node)
         self.init_node(unpickled_node)
 
     def __call__(self, workflow):
+        """
+        Runs a workflow. Returns either the result of the final node or the final node itself, depending on the
+        workflow template. Also initialises the multiprocessing manager and its processes.
+        Args:
+            workflow: Workflow template to run.
+
+        Returns:
+            result: Result of the final node in the workflow.
+        """
         pickled_workflow = dill.dumps(workflow)
         self.multiprocessing_manager.start_processes(
             self.create_process_graph, pickled_workflow

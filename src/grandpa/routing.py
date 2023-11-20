@@ -6,7 +6,7 @@ class Switch:
     Used to connect nodes to each other.
     """
 
-    def __init__(self, address, router, node):
+    def __init__(self, address: str, router, node):
         self.address = address
         self.router = router
         self.node = node
@@ -35,35 +35,94 @@ class Switch:
             node_switch = self.router.get_switch(address)
             return node_switch(address, return_node, call_method)
 
-    def add_task(self, target, *args, **kwargs):
+    def add_task(self, target: callable, *args, **kwargs) -> int:
+        """
+        Adds a task to the multiprocessing manager.
+        Args:
+            target: Function to run.
+            *args: Arguments to pass to the function.
+            **kwargs: Keyword arguments to pass to the function.
+
+        Returns:
+            The task ID.
+        """
         return self.router.add_task(target, *args, **kwargs)
 
-    def get_task_result(self, task_id):
+    def get_task_result(self, task_id: int):
+        """
+        Gets the result of a task.
+        Args:
+            task_id: ID of the task.
+
+        Returns:
+            The result of the task.
+        """
         return self.router.get_task_result(task_id)
 
 
 class Router(Switch):
+    """
+    Connects to different systems (not implemented). Also handles multiprocessing on the local system.
+    """
     def __init__(self, multiprocessing_manager: MultiprocessingManager):
         self.address_table = {}
         self.multiprocessing_manager = multiprocessing_manager
         super().__init__(None, self, None)
 
-    def get_switch(self, address):
+    def get_switch(self, address: str) -> Switch:
+        """
+        Gets the switch for a given address.
+        Args:
+            address: Address of the switch.
+
+        Returns:
+            The switch.
+        """
         if address not in self.address_table:
             raise RoutingError(address)
         return self.address_table[address]
 
-    def register(self, switch, address):
+    def register(self, switch: Switch, address: str):
+        """
+        Registers a switch to an address.
+        Args:
+            switch: Switch to register.
+            address: Address to register the switch to.
+
+        Returns:
+            None
+        """
         self.address_table[address] = switch
 
-    def add_task(self, target, *args, **kwargs):
+    def add_task(self, target: callable, *args, **kwargs) -> int:
+        """
+        Adds a task to the multiprocessing manager.
+        Args:
+            target: Function to run.
+            *args: Arguments to pass to the function.
+            **kwargs: Keyword arguments to pass to the function.
+
+        Returns:
+            The task ID.
+        """
         return self.multiprocessing_manager.add_task(target, *args, **kwargs)
 
-    def get_task_result(self, task_id):
+    def get_task_result(self, task_id: int):
+        """
+        Gets the result of a task.
+        Args:
+            task_id: ID of the task.
+
+        Returns:
+            The result of the task.
+        """
         return self.multiprocessing_manager.get_task_result(task_id)
 
 
 class RoutingError(Exception):
+    """
+    Raised when a route does not exist.
+    """
     def __init__(self, route):
         self.message = f'Route {route} does not exist - it might not have been created.'
         super().__init__(self.message)
