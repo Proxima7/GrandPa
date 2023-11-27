@@ -81,7 +81,10 @@ class MultiprocessingManager:
             None, sets the result of the task in the finished_tasks dict.
         """
         task = self.task_queue_in.get()
-        result = self.router(task.target)
+        if type(task.target) == str:
+            result = self.router(task.target)
+        else:
+            result = task.target(*task.args, **task.kwargs)
         self.finished_tasks[task.task_id] = result
 
     def process_thread_queue(self):
@@ -91,7 +94,10 @@ class MultiprocessingManager:
             None, sets the result of the task in the finished_thread_tasks dict.
         """
         task = self.thread_queue_in.get()
-        result = self.router(task.target)
+        if type(task.target) == str:
+            result = self.router(task.target)
+        else:
+            result = task.target(*task.args, **task.kwargs)
         self.finished_thread_tasks[task.task_id] = result
 
     def add_task(self, target: callable, *args, **kwargs) -> int:

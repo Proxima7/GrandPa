@@ -186,8 +186,7 @@ class TemplateParser:
         call_kwargs, required_kwarg_nodes = self.__get_node_kwargs(kwarg_nodes, node)
         return call_args, call_kwargs, required_arg_nodes, required_kwarg_nodes
 
-    @staticmethod
-    def __get_node_kwargs(kwarg_nodes, node):
+    def __get_node_kwargs(self, kwarg_nodes, node):
         """
         Gets the required kwarg nodes for a node template in the desired format.
         Args:
@@ -199,6 +198,8 @@ class TemplateParser:
             required_kwarg_nodes: Required kwarg nodes for the node template.
         """
         call_kwargs = node.call_kwargs
+        if node.pass_task_executor:
+            call_kwargs["task_executor"] = self.multiprocessing_manager
         required_kwarg_nodes = {}
         for key, kwarg_node in kwarg_nodes.items():
             if kwarg_node[1] == "Result":

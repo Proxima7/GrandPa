@@ -9,8 +9,9 @@ class Node:
     """
     Decorator for node class
     """
-    def __init__(self, name: str, *args, **kwargs):
+    def __init__(self, name: str, pass_task_executor: bool = False, *args, **kwargs):
         self.name = name
+        self.pass_task_executor = pass_task_executor
         self.args = args
         self.kwargs = kwargs
 
@@ -24,9 +25,9 @@ class Node:
             NodeTemplate if f is a class, FuncTemplate if f is a function, else raises RuntimeError
         """
         if inspect.isclass(f):
-            return NodeTemplate(f, self.name)
+            return NodeTemplate(f, self.name, self.pass_task_executor)
         elif inspect.isfunction(f):
-            return FuncTemplate(f, self.name)
+            return FuncTemplate(f, self.name, self.pass_task_executor)
         else:
             raise RuntimeError(
                 "Node decorator can only be used on classes or functions."
