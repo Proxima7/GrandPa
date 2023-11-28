@@ -135,6 +135,7 @@ class InitialisedNodeTemplate:
         self.call_args = []
         self.required_kwarg_nodes = {}
         self.call_kwargs = {}
+        self.pass_task_executor = False
 
     def __call__(self, *args, **kwargs) -> ResultWrapper:
         """
