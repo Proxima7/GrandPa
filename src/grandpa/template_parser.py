@@ -1,7 +1,7 @@
 import dill
 
 from grandpa.multiprocessing_manager import MultiprocessingManager
-from grandpa.node import Node
+from grandpa.node import Node, TaskNode
 from grandpa.routing import Router
 from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
                                       NodeTemplate, ResultWrapper)
@@ -64,15 +64,36 @@ class TemplateParser:
             required_arg_nodes,
             required_kwarg_nodes,
         ) = self.get_node_parameters(arg_nodes, kwarg_nodes, node)
-        f_node = Node(
-            node.name,
-            self.router,
-            node.function,
-            call_args,
-            call_kwargs,
-            required_arg_nodes,
-            required_kwarg_nodes,
-        )
+        if node.grandpa_task_node:
+            t_node = Node(
+                node.name + "_target",
+                self.router,
+                node.function,
+                [],
+                {},
+                [],
+                {},
+            )
+            f_node = TaskNode(
+                node.name,
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address,
+            )
+        else:
+            f_node = Node(
+                node.name,
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+            )
         self.initialised_nodes[node] = f_node.address
         return f_node.address, "Node"
 
@@ -122,15 +143,36 @@ class TemplateParser:
             required_kwarg_nodes,
         ) = self.get_node_parameters(arg_nodes, kwarg_nodes, node)
         init_cls, _ = self.init_node(node.node_template)
-        f_node = Node(
-            node.node_template.name,
-            self.router,
-            init_cls,
-            call_args,
-            call_kwargs,
-            required_arg_nodes,
-            required_kwarg_nodes,
-        )
+        if node.grandpa_task_node:
+            t_node = Node(
+                node.node_template.name + "_target",
+                self.router,
+                init_cls,
+                [],
+                {},
+                [],
+                {},
+            )
+            f_node = TaskNode(
+                node.node_template.name,
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address,
+            )
+        else:
+            f_node = Node(
+                node.node_template.name,
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+            )
         self.initialised_nodes[node] = f_node.address
         return f_node.address, "Node"
 

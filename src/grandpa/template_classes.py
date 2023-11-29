@@ -90,7 +90,8 @@ class FuncTemplate:
     """
     Template to wrap a function.
     """
-    def __init__(self, function: callable, name: str, pass_task_executor: bool = False):
+    def __init__(self, function: callable, name: str, pass_task_executor: bool = False,
+                 grandpa_task_node: bool = False):
         self.function = function
         self.name = name
         self.required_arg_nodes = []
@@ -98,6 +99,7 @@ class FuncTemplate:
         self.required_kwarg_nodes = {}
         self.call_kwargs = {}
         self.pass_task_executor = pass_task_executor
+        self.grandpa_task_node = grandpa_task_node
 
     def __call__(self, *args, **kwargs) -> ResultWrapper:
         """
@@ -111,7 +113,7 @@ class FuncTemplate:
         Returns:
             ResultWrapper indicating the result of the function call.
         """
-        loc_func_temp = FuncTemplate(self.function, self.name, self.pass_task_executor)
+        loc_func_temp = FuncTemplate(self.function, self.name, self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_func_temp, args, kwargs)
         return ResultWrapper(loc_func_temp)
 
@@ -129,13 +131,14 @@ class InitialisedNodeTemplate:
     Template to wrap a class object. This is used to indicate that the class should be initialised with the given args
     and kwargs.
     """
-    def __init__(self, node_template):
+    def __init__(self, node_template, grandpa_task_node: bool = False):
         self.node_template = node_template
         self.required_arg_nodes = []
         self.call_args = []
         self.required_kwarg_nodes = {}
         self.call_kwargs = {}
         self.pass_task_executor = False
+        self.grandpa_task_node = grandpa_task_node
 
     def __call__(self, *args, **kwargs) -> ResultWrapper:
         """
@@ -149,7 +152,7 @@ class InitialisedNodeTemplate:
         Returns:
             ResultWrapper indicating the result of the class object call.
         """
-        loc_init_node_temp = InitialisedNodeTemplate(self.node_template)
+        loc_init_node_temp = InitialisedNodeTemplate(self.node_template, self.grandpa_task_node)
         register_params(loc_init_node_temp, args, kwargs)
         return ResultWrapper(loc_init_node_temp)
 
@@ -166,7 +169,7 @@ class NodeTemplate:
     """
     Template to wrap a class. This is used to indicate that the class is a Node and can be instantiated.
     """
-    def __init__(self, cls, name: str, pass_task_executor: bool = False):
+    def __init__(self, cls, name: str, pass_task_executor: bool = False, grandpa_task_node: bool = False):
         self.cls = cls
         self.name = name
         self.required_arg_nodes = []
@@ -174,6 +177,7 @@ class NodeTemplate:
         self.required_kwarg_nodes = {}
         self.call_kwargs = {}
         self.pass_task_executor = pass_task_executor
+        self.grandpa_task_node = grandpa_task_node
 
     def __call__(self, *args, **kwargs) -> InitialisedNodeTemplate:
         """
@@ -187,9 +191,9 @@ class NodeTemplate:
         Returns:
             InitialisedNodeTemplate indicating the instantiated class.
         """
-        loc_node_temp = NodeTemplate(self.cls, self.name, self.pass_task_executor)
+        loc_node_temp = NodeTemplate(self.cls, self.name, self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_node_temp, args, kwargs)
-        return InitialisedNodeTemplate(loc_node_temp)
+        return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node)
 
     def __reduce__(self):
         """

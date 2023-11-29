@@ -1,4 +1,4 @@
-from grandpa import Node, Workflow
+from grandpa import Node, Workflow, TaskNode
 import os
 import threading
 import time
@@ -25,6 +25,14 @@ class TaskTarget:
         return a + b
 
 
+@TaskNode("task_node")
+class TaskNode:
+    def __call__(self, a: int, b: int) -> int:
+        print_process_and_thread_info()
+        time.sleep(0.1)
+        return a + b
+
+
 @Node("task_creator_class", pass_task_executor=True)
 class TaskCreatorClass:
     def __init__(self, task_executor: MultiprocessingManager):
@@ -35,8 +43,8 @@ class TaskCreatorClass:
         time.sleep(0.1)
         return a + b
 
-    def __call__(self, a: int, b: int):
-        tasks = [self.task_executor.add_task(self.task_target, a, b) for _ in range(100)]
+    def __call__(self, task_node):
+        tasks = [self.task_executor.add_task(task_node, 1, 2) for _ in range(100)]
         results = [self.task_executor.get_task_result(task) for task in tasks]
         return results
 
@@ -51,5 +59,5 @@ def task_creator(a: int, b: int, task_executor: MultiprocessingManager):
 
 @Workflow("task_workflow")
 def task_workflow():
-    t = TaskCreatorClass()
-    return t(1, 2)
+    tn = TaskNode()
+    return tn([1 for _ in range(100)], [2 for _ in range(100)])
