@@ -1,21 +1,14 @@
 from distutils.core import setup
 
 install_requires = [
-    "setuptools",
-    "wheel",
-    "imageio",
-    "numpy",
-    "opencv-python",
-    "Pillow",
-    "psutil",
-    "tqdm",
+    "dill~=0.3.7",
 ]
 
 
 setup(
     name='grandpa',
-    version='0.6.2',
-    packages=['grandpa', 'grandpa.utils'],
+    version='2.0.0',
+    packages=['grandpa'],
     url='https://github.com/Proxima7/GrandPa',
     license='MIT License',
     author='Bizerba AI Team',
