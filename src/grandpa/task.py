@@ -1,3 +1,6 @@
+import os
+
+
 class TaskID:
     """
     Task ID class for multiprocessing.
@@ -30,6 +33,7 @@ class Task:
         self.args = args
         self.kwargs = kwargs
         self.result = None
+        self.origin = os.getpid()
 
     def generate_result(self):
         """

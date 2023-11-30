@@ -1,3 +1,5 @@
+import multiprocessing
+
 import dill
 
 from grandpa.multiprocessing_manager import MultiprocessingManager
@@ -11,9 +13,11 @@ class TemplateParser:
     """
     TemplateParser class. Used to parse a workflow template into an executable pipeline.
     """
-    def __init__(self):
+    def __init__(self, process_count: int = multiprocessing.cpu_count() // 4,
+                 threads_per_process: int = multiprocessing.cpu_count() // 4):
         self.initialised_nodes = {}
-        self.multiprocessing_manager = MultiprocessingManager()
+        self.multiprocessing_manager = MultiprocessingManager(process_count=process_count,
+                                                              threads_per_process=threads_per_process)
         self.router = Router(self.multiprocessing_manager)
         self.multiprocessing_manager.router = self.router
 
