@@ -40,12 +40,11 @@ class MultiprocessingManager:
     Manages the multiprocessing and threading of the framework.
     """
 
-    def __init__(self, process_count: int = multiprocessing.cpu_count() // 4,
+    def __init__(self, manager: multiprocessing.Manager, process_count: int = multiprocessing.cpu_count() // 4,
                  threads_per_process: int = multiprocessing.cpu_count() // 4):
         self.process_count = process_count
         self.threads_per_process = threads_per_process
         self.task_queue_in = multiprocessing.Queue()
-        manager = multiprocessing.Manager()
         self.finished_tasks = manager.dict()
         self.finished_thread_tasks = {}
         self.router = None

@@ -1,3 +1,6 @@
+import multiprocessing
+
+import grandpa
 from grandpa import Node, Workflow, TaskNode
 import os
 import threading
@@ -27,6 +30,9 @@ class TaskTarget:
 
 @TaskNode("task_node")
 class TaskNode:
+    def __init__(self, sample_value: multiprocessing.Value = grandpa.sync.Value(float, 1.0)):
+        self.sample_value = sample_value
+
     def __call__(self, a: int, b: int) -> int:
         print_process_and_thread_info()
         time.sleep(0.1)

@@ -1,3 +1,8 @@
+import inspect
+
+from grandpa.sync import get_sync_params
+
+
 def register_params(template: callable, args: tuple, kwargs: dict):
     """
     Registers args and kwargs for execution to a template.
@@ -133,6 +138,7 @@ class InitialisedNodeTemplate:
     """
     def __init__(self, node_template, grandpa_task_node: bool = False):
         self.node_template = node_template
+        self.name = self.node_template.name + "_init"
         self.required_arg_nodes = []
         self.call_args = []
         self.required_kwarg_nodes = {}
@@ -193,6 +199,7 @@ class NodeTemplate:
         """
         loc_node_temp = NodeTemplate(self.cls, self.name, self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_node_temp, args, kwargs)
+        loc_node_temp.sync_params = get_sync_params(self.cls.__init__)
         return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node)
 
     def __reduce__(self):

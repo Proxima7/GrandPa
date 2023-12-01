@@ -7,7 +7,7 @@ install_requires = [
 
 setup(
     name='grandpa',
-    version='2.0.0',
+    version='2.1.0',
     packages=['grandpa'],
     url='https://github.com/Proxima7/GrandPa',
     license='MIT License',
