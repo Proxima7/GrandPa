@@ -240,7 +240,7 @@ class TemplateParser:
         unpickled_node = dill.loads(final_node)
         self.init_node(unpickled_node)
 
-    def __call__(self, workflow):
+    def __call__(self, workflow, settings=None):
         """
         Runs a workflow. Returns either the result of the final node or the final node itself, depending on the
         workflow template. Also initialises the multiprocessing manager and its processes.
@@ -250,7 +250,9 @@ class TemplateParser:
         Returns:
             result: Result of the final node in the workflow.
         """
-        final_node = workflow()
+        if settings is None:
+            settings = {}
+        final_node = workflow(**settings)
         pickled_workflow = dill.dumps(final_node)
         self.multiprocessing_manager.start_processes(
             self.create_process_graph, pickled_workflow
