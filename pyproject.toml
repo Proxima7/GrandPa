@@ -1,12 +1,6 @@
 [build-system]
 requires = [
     "setuptools",
-    "wheel",
-    "imageio",
-    "numpy",
-    "opencv-python",
-    "Pillow",
-    "psutil",
-    "tqdm"
+    "dill~=0.3.7"
 ]
 build-backend = "setuptools.build_meta"

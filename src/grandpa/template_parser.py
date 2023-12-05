@@ -1,7 +1,9 @@
+import multiprocessing
+
 import dill
 
 from grandpa.multiprocessing_manager import MultiprocessingManager
-from grandpa.node import Node
+from grandpa.node import Node, TaskNode
 from grandpa.routing import Router
 from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
                                       NodeTemplate, ResultWrapper)
@@ -11,9 +13,11 @@ class TemplateParser:
     """
     TemplateParser class. Used to parse a workflow template into an executable pipeline.
     """
-    def __init__(self):
+    def __init__(self, process_count: int = multiprocessing.cpu_count() // 4,
+                 threads_per_process: int = multiprocessing.cpu_count() // 4):
         self.initialised_nodes = {}
-        self.multiprocessing_manager = MultiprocessingManager()
+        self.multiprocessing_manager = MultiprocessingManager(process_count=process_count,
+                                                              threads_per_process=threads_per_process)
         self.router = Router(self.multiprocessing_manager)
         self.multiprocessing_manager.router = self.router
 
@@ -64,15 +68,36 @@ class TemplateParser:
             required_arg_nodes,
             required_kwarg_nodes,
         ) = self.get_node_parameters(arg_nodes, kwarg_nodes, node)
-        f_node = Node(
-            node.name,
-            self.router,
-            node.function,
-            call_args,
-            call_kwargs,
-            required_arg_nodes,
-            required_kwarg_nodes,
-        )
+        if node.grandpa_task_node:
+            t_node = Node(
+                node.name + "_target",
+                self.router,
+                node.function,
+                [],
+                {},
+                [],
+                {},
+            )
+            f_node = TaskNode(
+                node.name,
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address,
+            )
+        else:
+            f_node = Node(
+                node.name,
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+            )
         self.initialised_nodes[node] = f_node.address
         return f_node.address, "Node"
 
@@ -122,15 +147,36 @@ class TemplateParser:
             required_kwarg_nodes,
         ) = self.get_node_parameters(arg_nodes, kwarg_nodes, node)
         init_cls, _ = self.init_node(node.node_template)
-        f_node = Node(
-            node.node_template.name,
-            self.router,
-            init_cls,
-            call_args,
-            call_kwargs,
-            required_arg_nodes,
-            required_kwarg_nodes,
-        )
+        if node.grandpa_task_node:
+            t_node = Node(
+                node.node_template.name + "_target",
+                self.router,
+                init_cls,
+                [],
+                {},
+                [],
+                {},
+            )
+            f_node = TaskNode(
+                node.node_template.name,
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address,
+            )
+        else:
+            f_node = Node(
+                node.node_template.name,
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+            )
         self.initialised_nodes[node] = f_node.address
         return f_node.address, "Node"
 
@@ -186,8 +232,7 @@ class TemplateParser:
         call_kwargs, required_kwarg_nodes = self.__get_node_kwargs(kwarg_nodes, node)
         return call_args, call_kwargs, required_arg_nodes, required_kwarg_nodes
 
-    @staticmethod
-    def __get_node_kwargs(kwarg_nodes, node):
+    def __get_node_kwargs(self, kwarg_nodes, node):
         """
         Gets the required kwarg nodes for a node template in the desired format.
         Args:
@@ -199,6 +244,8 @@ class TemplateParser:
             required_kwarg_nodes: Required kwarg nodes for the node template.
         """
         call_kwargs = node.call_kwargs
+        if node.pass_task_executor:
+            call_kwargs["task_executor"] = self.multiprocessing_manager
         required_kwarg_nodes = {}
         for key, kwarg_node in kwarg_nodes.items():
             if kwarg_node[1] == "Result":

@@ -1,4 +1,5 @@
-from grandpa.routing import Router, Switch
+from .routing import Router, Switch
+from .task import TaskID
 
 
 class Node:
@@ -24,7 +25,7 @@ class Node:
         self.address = name
         self.switch = Switch(self.address, router, self)
 
-    def __call__(self, call_method: str = None):
+    def __call__(self, *args, call_method: str = None, **kwargs):
         """
         Main execution method for Node. Will first load all required arguments and keyword arguments asynchronously,
         then run the function or class it wraps.
@@ -34,15 +35,19 @@ class Node:
         Returns:
             The result of the function or class it wraps.
         """
-        args = self.__load_args()
-        kwargs = self.__load_kwargs()
-        self.__finish_tasks_for_args(args)
-        self.__finish_tasks_for_kwargs(kwargs)
-        args.extend(self.call_args)
-        kwargs.update(self.call_kwargs)
-        return self.executable_func(*args, **kwargs)
+        if call_method is None:
+            args = self._load_args(args)
+            kwargs = self._load_kwargs(kwargs)
+            self._finish_tasks_for_args(args)
+            self._finish_tasks_for_kwargs(kwargs)
+            args.extend(self.call_args)
+            kwargs.update(self.call_kwargs)
+            return self.executable_func(*args, **kwargs)
+        else:
+            call_func = getattr(self.executable_func, call_method)
+            return call_func(*args, **kwargs)
 
-    def __finish_tasks_for_kwargs(self, kwargs: dict):
+    def _finish_tasks_for_kwargs(self, kwargs: dict):
         """
         Waits for all active tasks in kwargs to finish, and replaces them with their results.
         Args:
@@ -52,10 +57,10 @@ class Node:
             None
         """
         for key, value in kwargs.items():
-            if type(value) == int:
+            if isinstance(value, TaskID):
                 kwargs[key] = self.switch.get_task_result(value)
 
-    def __finish_tasks_for_args(self, args: list):
+    def _finish_tasks_for_args(self, args: list):
         """
         Waits for all active tasks in args to finish, and replaces them with their results.
         Args:
@@ -65,17 +70,21 @@ class Node:
             None
         """
         for i in range(len(args)):
-            if type(args[i]) == int:
+            if isinstance(args[i], TaskID):
                 args[i] = self.switch.get_task_result(args[i])
 
-    def __load_kwargs(self) -> dict:
+    def _load_kwargs(self, kwargs: dict = None) -> dict:
         """
         Loads all keyword arguments. Node[1] is a bool which specifies if the argument is a Node object
         (-> pull the node object from the switch) or the result of a Node (-> create a Task to execute the Node).
+        Args:
+            kwargs: Dictionary of keyword arguments already passed with call.
+
         Returns:
             Dictionary of keyword arguments with required results replaced by their task ids.
         """
-        kwargs = {}
+        if kwargs is None:
+            kwargs = {}
         for key, node in self.required_kwarg_nodes.items():
             if node[1]:
                 kwargs[key] = self.switch(*node)
@@ -83,17 +92,115 @@ class Node:
                 kwargs[key] = self.switch.add_task(node[0])
         return kwargs
 
-    def __load_args(self) -> list:
+    def _load_args(self, args: tuple = None) -> list:
         """
         Loads all arguments. Node[1] is a bool which specifies if the argument is a Node object
         (-> pull the node object from the switch) or the result of a Node (-> create a Task to execute the Node).
+        Args:
+            args: Tuple of arguments already passed with call.
+
         Returns:
             List of arguments with required results replaced by their task ids.
         """
-        args = []
+        if args is None:
+            args = []
+        else:
+            args = list(args)
         for node in self.required_arg_nodes:
             if node[1]:
                 args.append(self.switch(*node))
             else:
                 args.append(self.switch.add_task(node[0]))
         return args
+
+
+class TaskNode(Node):
+    """
+    TaskNode will execute a Node multiple times. The count of execution is determined dynamically be the amount of
+    entries per argument/keyword argument. The count must be the same for all arguments/keyword arguments. This is only
+    the case for the __call__ method, all other methods will behave like a normal Node.
+    """
+    def __init__(
+        self,
+        name: str,
+        router: Router,
+        executable_func: callable,
+        call_args: list,
+        call_kwargs: dict,
+        required_arg_nodes: list,
+        required_kwarg_nodes: dict,
+        target_address: str,
+    ):
+        super().__init__(name, router, executable_func, call_args, call_kwargs, required_arg_nodes,
+                         required_kwarg_nodes)
+        self.target_address = target_address
+
+    @staticmethod
+    def get_param_subset_count(args: list, kwargs: dict):
+        """
+        Returns the number of elements in the first parameter of the TaskNode. This determines how often target address
+        will be executed.
+        Args:
+            args: Arguments passed to TaskNode
+            kwargs: Keyword arguments passed to TaskNode
+
+        Returns:
+            Number of elements in first parameter of TaskNode
+        """
+        if len(args) > 0:
+            return len(args[0])
+        elif len(kwargs) > 0:
+            return len(kwargs[list(kwargs.keys())[0]])
+        else:
+            raise RuntimeError("No parameters found for TaskNode. TaskNode requires at least one parameter.")
+
+    @staticmethod
+    def get_param_subset(index, args, kwargs):
+        """
+        Returns a subset of the arguments and keyword arguments of the TaskNode. This subset is determined by the index
+        of the first parameter of the TaskNode.
+        Args:
+            index: Index of the subset to return
+            args: Arguments passed to TaskNode
+            kwargs: Keyword arguments passed to TaskNode
+
+        Returns:
+            Subset of arguments and keyword arguments
+        """
+        try:
+            subset_args = []
+            for arg in args:
+                subset_args.append(arg[index])
+            subset_kwargs = {}
+            for key, value in kwargs.items():
+                subset_kwargs[key] = value[index]
+            return subset_args, subset_kwargs
+        except IndexError:
+            raise RuntimeError("Index out of range for TaskNode. Please ensure that all parameters have the same "
+                               "length.")
+
+    def __call__(self, *args, call_method: str = None, **kwargs):
+        """
+        Main execution method for Node. Will first load all required arguments and keyword arguments asynchronously,
+        then run the function or class it wraps.
+        Args:
+            call_method: (Not implemented) Specify a different function to run (only for wrapped classes)
+
+        Returns:
+            The result of the function or class it wraps.
+        """
+        if call_method is None:
+            args = self._load_args(args)
+            kwargs = self._load_kwargs(kwargs)
+            self._finish_tasks_for_args(args)
+            self._finish_tasks_for_kwargs(kwargs)
+            args.extend(self.call_args)
+            kwargs.update(self.call_kwargs)
+            tasks = []
+            for i in range(self.get_param_subset_count(args, kwargs)):
+                subset_args, subset_kwargs = self.get_param_subset(i, args, kwargs)
+                tasks.append(self.switch.add_task(self.target_address, *subset_args, **subset_kwargs))
+            return [self.switch.get_task_result(task) for task in tasks]
+        else:
+            call_func = getattr(self.executable_func, call_method)
+            return call_func(*args, **kwargs)

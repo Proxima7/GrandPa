@@ -1,4 +1,4 @@
-from grandpa.multiprocessing_manager import MultiprocessingManager
+from .task import TaskID
 
 
 class Switch:
@@ -13,7 +13,8 @@ class Switch:
         self.router.register(self, address)
 
     def __call__(
-        self, address: str, return_node: bool = False, call_method: str = None
+        self, address: str, return_node: bool = False, call_method: str = None, call_args: tuple = None,
+            call_kwargs: dict = None
     ):
         """
         Connects to another node. Returns the result of the node if return_node is False, else returns the node itself.
@@ -30,12 +31,16 @@ class Switch:
             if return_node:
                 return self.node
             else:
-                return self.node(call_method=call_method)
+                if call_args is None:
+                    call_args = ()
+                if call_kwargs is None:
+                    call_kwargs = {}
+                return self.node(call_method=call_method, *call_args, **call_kwargs)
         else:
             node_switch = self.router.get_switch(address)
-            return node_switch(address, return_node, call_method)
+            return node_switch(address, return_node, call_method, call_args, call_kwargs)
 
-    def add_task(self, target: callable, *args, **kwargs) -> int:
+    def add_task(self, target: callable, *args, **kwargs) -> TaskID:
         """
         Adds a task to the multiprocessing manager.
         Args:
@@ -48,7 +53,7 @@ class Switch:
         """
         return self.router.add_task(target, *args, **kwargs)
 
-    def get_task_result(self, task_id: int):
+    def get_task_result(self, task_id: TaskID):
         """
         Gets the result of a task.
         Args:
@@ -64,7 +69,7 @@ class Router(Switch):
     """
     Connects to different systems (not implemented). Also handles multiprocessing on the local system.
     """
-    def __init__(self, multiprocessing_manager: MultiprocessingManager):
+    def __init__(self, multiprocessing_manager):
         self.address_table = {}
         self.multiprocessing_manager = multiprocessing_manager
         super().__init__(None, self, None)
@@ -94,7 +99,7 @@ class Router(Switch):
         """
         self.address_table[address] = switch
 
-    def add_task(self, target: callable, *args, **kwargs) -> int:
+    def add_task(self, target: callable, *args, **kwargs) -> TaskID:
         """
         Adds a task to the multiprocessing manager.
         Args:
@@ -107,7 +112,7 @@ class Router(Switch):
         """
         return self.multiprocessing_manager.add_task(target, *args, **kwargs)
 
-    def get_task_result(self, task_id: int):
+    def get_task_result(self, task_id: TaskID):
         """
         Gets the result of a task.
         Args:
