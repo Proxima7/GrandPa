@@ -1,8 +1,38 @@
 import multiprocessing
+import os
 import queue
 import random
 import threading
 import time
+from typing import Union, Tuple, Any, Dict
+from .node import Node
+from .task import Task, TaskID
+
+
+def is_grandpa_node_method(method: callable):
+    """
+    Checks if a method is part of a class decorated with a grandpa node decorator. Important for multiprocessing.
+    Args:
+        method: Method to check.
+
+    Returns:
+        bool: True if the method is part of a class decorated with a grandpa node decorator, else False.
+    """
+    if hasattr(method, '__self__') and hasattr(method.__self__, '__decorated_by_grandpa_node__'):
+        return getattr(method.__self__, '__decorated_by_grandpa_node__', False)
+    return False
+
+
+def is_grandpa_node_class(cls):
+    """
+    Checks if a method is part of a class decorated with a grandpa node decorator. Important for multiprocessing.
+    Args:
+        cls: Class to check.
+
+    Returns:
+        bool: True if the method is part of a class decorated with a grandpa node decorator, else False.
+    """
+    return isinstance(cls, Node)
 
 
 class MultiprocessingManager:
@@ -10,7 +40,10 @@ class MultiprocessingManager:
     Manages the multiprocessing and threading of the framework.
     """
 
-    def __init__(self):
+    def __init__(self, process_count: int = multiprocessing.cpu_count() // 4,
+                 threads_per_process: int = multiprocessing.cpu_count() // 4):
+        self.process_count = process_count
+        self.threads_per_process = threads_per_process
         self.task_queue_in = multiprocessing.Queue()
         manager = multiprocessing.Manager()
         self.finished_tasks = manager.dict()
@@ -30,7 +63,7 @@ class MultiprocessingManager:
         Returns:
             None, but starts the processes. The processes will process the task_queue_in.
         """
-        for _ in range(int(multiprocessing.cpu_count() / 4)):
+        for _ in range(self.process_count):
             process = multiprocessing.Process(
                 target=self.run_process, args=(start_func, *args), kwargs=kwargs
             )
@@ -61,7 +94,7 @@ class MultiprocessingManager:
             None, but starts the threads. The threads will process the thread_queue_in.
         """
         self.thread_queue_in = queue.Queue()
-        for _ in range(int(multiprocessing.cpu_count() / 4)):
+        for _ in range(self.threads_per_process):
             thread = threading.Thread(target=self.run_thread)
             thread.start()
 
@@ -81,8 +114,22 @@ class MultiprocessingManager:
             None, sets the result of the task in the finished_tasks dict.
         """
         task = self.task_queue_in.get()
-        result = self.router(task.target)
-        self.finished_tasks[task.task_id] = result
+        if self.thread_queue_in.qsize() < self.threads_per_process:
+            self.thread_queue_in.put(task)
+        else:
+            if type(task.target) == str:
+                if "call_method" in task.kwargs:
+                    call_method = task.kwargs["call_method"]
+                    del task.kwargs["call_method"]
+                else:
+                    call_method = None
+                result = self.router(task.target, call_method=call_method, call_args=task.args, call_kwargs=task.kwargs)
+            else:
+                result = task.target(*task.args, **task.kwargs)
+            if task.origin == os.getpid():
+                self.finished_thread_tasks[task.task_id] = result
+            else:
+                self.finished_tasks[task.task_id] = result
 
     def process_thread_queue(self):
         """
@@ -91,10 +138,46 @@ class MultiprocessingManager:
             None, sets the result of the task in the finished_thread_tasks dict.
         """
         task = self.thread_queue_in.get()
-        result = self.router(task.target)
-        self.finished_thread_tasks[task.task_id] = result
+        if type(task.target) == str:
+            if "call_method" in task.kwargs:
+                call_method = task.kwargs["call_method"]
+                del task.kwargs["call_method"]
+            else:
+                call_method = None
+            result = self.router(task.target, call_method=call_method, call_args=task.args, call_kwargs=task.kwargs)
+        else:
+            result = task.target(*task.args, **task.kwargs)
+        if task.origin == os.getpid():
+            self.finished_thread_tasks[task.task_id] = result
+        else:
+            self.finished_tasks[task.task_id] = result
 
-    def add_task(self, target: callable, *args, **kwargs) -> int:
+    @staticmethod
+    def convert_to_router_instruction(target: Union[callable, str], *args, **kwargs) -> \
+            Tuple[Union[callable, str], Tuple[Any], Dict[str, Any]]:
+        """
+        Checks if the target can be mapped as a router instruction. If so, it will be converted to a router
+        instruction, else it will be returned unchanged.
+        Args:
+            target: Function which the task will execute.
+            *args: Additional args to call the target with.
+            **kwargs: Additional kwargs to call the target with.
+
+        Returns:
+            target: Target as a router instruction.
+        """
+        if type(target) != str:
+            if is_grandpa_node_method(target):
+                grandpa_node_address = target.__self__.__grandpa_node_address__
+                method_name = target.__name__
+                kwargs["call_method"] = method_name
+                return grandpa_node_address, args, kwargs
+            elif is_grandpa_node_class(target):
+                grandpa_node_address = target.address
+                return grandpa_node_address, args, kwargs
+        return target, args, kwargs
+
+    def add_task(self, target: Union[callable, str], *args, **kwargs) -> TaskID:
         """
         Adds a task to the task_queue_in or thread_queue_in. The queue with the least entries will be chosen.
         Args:
@@ -105,17 +188,16 @@ class MultiprocessingManager:
         Returns:
             task_id: ID of the task, which can be used to get the result of the task.
         """
-        task_id = random.randint(0, 1000000000)
+        task_id = TaskID(random.randint(0, 1000000000))
+        target, args, kwargs = self.convert_to_router_instruction(target, *args, **kwargs)
         task = Task(target, task_id, *args, **kwargs)
-        process_queue_size = self.task_queue_in.qsize()
-        thread_queue_size = self.thread_queue_in.qsize()
-        if process_queue_size > thread_queue_size:
+        if self.thread_queue_in.qsize() < self.threads_per_process * 3 or self.process_count == 0:
             self.thread_queue_in.put(task)
         else:
             self.task_queue_in.put(task)
         return task_id
 
-    def get_task_result(self, task_id: int):
+    def get_task_result(self, task_id: TaskID):
         """
         Gets the result of a task. Will wait until the task is finished.
         Args:
@@ -139,32 +221,3 @@ class MultiprocessingManager:
                 self.process_thread_queue()
             else:
                 time.sleep(0.01)
-
-
-class Task:
-    """
-    Task Class for Multiprocessing. Will execute once.
-    """
-
-    def __init__(self, target: callable, task_id: int, *args, **kwargs):
-        self.target = target
-        self.task_id = task_id
-        self.args = args
-        self.kwargs = kwargs
-        self.result = None
-
-    def generate_result(self):
-        """
-        Executes the target function with the args and kwargs.
-        Returns:
-            None, but sets the result of the task.
-        """
-        self.result = self.target(*self.args, **self.kwargs)
-
-    def get_result(self):
-        """
-        Gets the result of the task.
-        Returns:
-            result: Result of the task.
-        """
-        return self.result
