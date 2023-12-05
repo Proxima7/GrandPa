@@ -297,12 +297,13 @@ class TemplateParser:
         Returns:
             result: Result of the final node in the workflow.
         """
-        pickled_workflow = dill.dumps(workflow)
+        final_node = workflow()
+        pickled_workflow = dill.dumps(final_node)
         self.multiprocessing_manager.start_processes(
             self.create_process_graph, pickled_workflow
         )
         self.multiprocessing_manager.start_threads()
-        final_node, node_type = self.init_node(workflow())
+        final_node, node_type = self.init_node(final_node)
         if node_type == "Node":
             return self.router(final_node, True)
         elif node_type == "Result":
