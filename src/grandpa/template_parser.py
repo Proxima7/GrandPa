@@ -3,7 +3,7 @@ import multiprocessing
 import dill
 
 from grandpa.multiprocessing_manager import MultiprocessingManager
-from grandpa.node import Node, TaskNode
+from grandpa.node import Node, TaskNode, GeneratorNode
 from grandpa.routing import Router
 from grandpa.template_classes import (FuncTemplate, InitialisedNodeTemplate,
                                       NodeTemplate, ResultWrapper)
@@ -88,6 +88,27 @@ class TemplateParser:
                 required_kwarg_nodes,
                 t_node.address,
             )
+        elif node.grandpa_generator_node:
+            t_node = Node(
+                node.name + "_target",
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes
+
+            )
+            f_node = GeneratorNode(
+                node.name,
+                self.router,
+                node.function,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address
+            )
         else:
             f_node = Node(
                 node.name,
@@ -158,6 +179,27 @@ class TemplateParser:
                 {},
             )
             f_node = TaskNode(
+                node.node_template.name,
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes,
+                t_node.address,
+            )
+        elif node.grandpa_generator_node:
+            t_node = Node(
+                node.node_template.name + "_target",
+                self.router,
+                init_cls,
+                call_args,
+                call_kwargs,
+                required_arg_nodes,
+                required_kwarg_nodes
+
+            )
+            f_node = GeneratorNode(
                 node.node_template.name,
                 self.router,
                 init_cls,
