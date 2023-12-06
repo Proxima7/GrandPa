@@ -4,6 +4,7 @@ import queue
 import random
 import threading
 import time
+import uuid
 from typing import Union, Tuple, Any, Dict
 from .node import Node
 from .task import Task, TaskID
@@ -40,12 +41,11 @@ class MultiprocessingManager:
     Manages the multiprocessing and threading of the framework.
     """
 
-    def __init__(self, process_count: int = multiprocessing.cpu_count() // 4,
+    def __init__(self, manager: multiprocessing.Manager, process_count: int = multiprocessing.cpu_count() // 4,
                  threads_per_process: int = multiprocessing.cpu_count() // 4):
         self.process_count = process_count
         self.threads_per_process = threads_per_process
         self.task_queue_in = multiprocessing.Queue()
-        manager = multiprocessing.Manager()
         self.finished_tasks = manager.dict()
         self.finished_thread_tasks = {}
         self.router = None
@@ -188,7 +188,7 @@ class MultiprocessingManager:
         Returns:
             task_id: ID of the task, which can be used to get the result of the task.
         """
-        task_id = TaskID(random.randint(0, 1000000000))
+        task_id = TaskID(str(uuid.uuid4()))
         target, args, kwargs = self.convert_to_router_instruction(target, *args, **kwargs)
         task = Task(target, task_id, *args, **kwargs)
         if self.thread_queue_in.qsize() < self.threads_per_process * 3 or self.process_count == 0:

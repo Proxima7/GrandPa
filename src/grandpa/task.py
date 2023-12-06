@@ -6,7 +6,7 @@ class TaskID:
     Task ID class for multiprocessing.
     """
 
-    def __init__(self, task_id: int):
+    def __init__(self, task_id: str):
         self.task_id = task_id
 
     def __str__(self):

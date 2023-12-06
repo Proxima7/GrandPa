@@ -1,4 +1,8 @@
+import inspect
 import random
+import uuid
+
+from grandpa.sync import get_sync_params
 
 
 def register_params(template: callable, args: tuple, kwargs: dict):
@@ -108,7 +112,7 @@ class FuncTemplate:
         Returns:
             ResultWrapper indicating the result of the function call.
         """
-        loc_id = random.randint(0, 1000000)
+        loc_id = uuid.uuid4()
         loc_func_temp = FuncTemplate(self.function, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_func_temp, args, kwargs)
         return ResultWrapper(loc_func_temp)
@@ -121,6 +125,7 @@ class InitialisedNodeTemplate:
     """
     def __init__(self, node_template, grandpa_task_node: bool = False):
         self.node_template = node_template
+        self.name = self.node_template.name + "_init"
         self.required_arg_nodes = []
         self.call_args = []
         self.required_kwarg_nodes = {}
@@ -140,7 +145,7 @@ class InitialisedNodeTemplate:
         Returns:
             ResultWrapper indicating the result of the class object call.
         """
-        loc_id = random.randint(0, 1000000)
+        loc_id = uuid.uuid4()
         loc_node_temp = NodeTemplate(self.node_template.cls, self.node_template.name + str(loc_id))
         loc_node_temp.required_arg_nodes = self.node_template.required_arg_nodes
         loc_node_temp.call_args = self.node_template.call_args
@@ -177,9 +182,10 @@ class NodeTemplate:
         Returns:
             InitialisedNodeTemplate indicating the instantiated class.
         """
-        loc_id = random.randint(0, 1000000)
+        loc_id = uuid.uuid4()
         loc_node_temp = NodeTemplate(self.cls, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_node_temp, args, kwargs)
+        loc_node_temp.sync_params = get_sync_params(self.cls.__init__)
         return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node)
 
 
