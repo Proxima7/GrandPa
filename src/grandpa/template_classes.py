@@ -1,4 +1,5 @@
 import inspect
+import random
 
 from grandpa.sync import get_sync_params
 
@@ -82,14 +83,6 @@ class ResultWrapper:
     def __init__(self, origin):
         self.origin = origin
 
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the origin template and an empty tuple.
-        """
-        return self.origin, ()
-
 
 class FuncTemplate:
     """
@@ -118,17 +111,10 @@ class FuncTemplate:
         Returns:
             ResultWrapper indicating the result of the function call.
         """
-        loc_func_temp = FuncTemplate(self.function, self.name, self.pass_task_executor, self.grandpa_task_node)
+        loc_id = random.randint(0, 1000000)
+        loc_func_temp = FuncTemplate(self.function, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_func_temp, args, kwargs)
         return ResultWrapper(loc_func_temp)
-
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the function and an empty tuple.
-        """
-        return self.function, ()
 
 
 class InitialisedNodeTemplate:
@@ -158,17 +144,15 @@ class InitialisedNodeTemplate:
         Returns:
             ResultWrapper indicating the result of the class object call.
         """
-        loc_init_node_temp = InitialisedNodeTemplate(self.node_template, self.grandpa_task_node)
+        loc_id = random.randint(0, 1000000)
+        loc_node_temp = NodeTemplate(self.node_template.cls, self.node_template.name + str(loc_id))
+        loc_node_temp.required_arg_nodes = self.node_template.required_arg_nodes
+        loc_node_temp.call_args = self.node_template.call_args
+        loc_node_temp.required_kwarg_nodes = self.node_template.required_kwarg_nodes
+        loc_node_temp.call_kwargs = self.node_template.call_kwargs
+        loc_init_node_temp = InitialisedNodeTemplate(loc_node_temp, self.grandpa_task_node)
         register_params(loc_init_node_temp, args, kwargs)
         return ResultWrapper(loc_init_node_temp)
-
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the class object and an empty tuple.
-        """
-        return self.node_template.cls, ()
 
 
 class NodeTemplate:
@@ -197,18 +181,11 @@ class NodeTemplate:
         Returns:
             InitialisedNodeTemplate indicating the instantiated class.
         """
-        loc_node_temp = NodeTemplate(self.cls, self.name, self.pass_task_executor, self.grandpa_task_node)
+        loc_id = random.randint(0, 1000000)
+        loc_node_temp = NodeTemplate(self.cls, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node)
         register_params(loc_node_temp, args, kwargs)
         loc_node_temp.sync_params = get_sync_params(self.cls.__init__)
         return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node)
-
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the class and an empty tuple.
-        """
-        return self.cls, ()
 
 
 class ComponentTemplate:
@@ -231,14 +208,6 @@ class ComponentTemplate:
         """
         return self.component_func(*args, **kwargs)
 
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the component function and an empty tuple.
-        """
-        return self.component_func, ()
-
 
 class PipelineTemplate:
     """
@@ -260,11 +229,3 @@ class PipelineTemplate:
             Last Node of the DAG created by the pipeline function as a template.
         """
         return self.pipeline_func(*args, **kwargs)
-
-    def __reduce__(self):
-        """
-        Reduction function for pickling.
-        Returns:
-            Tuple of the pipeline function and an empty tuple.
-        """
-        return self.pipeline_func, ()

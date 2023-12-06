@@ -359,13 +359,14 @@ class TemplateParser:
         """
         manager = multiprocessing.Manager()
         self.init_multiprocessing_manager(manager)
-        sync_objects = self.init_sync_classes(manager, workflow())
-        pickled_workflow = dill.dumps(workflow)
+        final_node = workflow()
+        sync_objects = self.init_sync_classes(manager, final_node)
+        pickled_workflow = dill.dumps(final_node)
         self.multiprocessing_manager.start_processes(
             self.create_process_graph, pickled_workflow, sync_objects
         )
         self.multiprocessing_manager.start_threads()
-        final_node, node_type = self.init_node(workflow(), sync_objects)
+        final_node, node_type = self.init_node(final_node, sync_objects)
         if node_type == "Node":
             return self.router(final_node, True)
         elif node_type == "Result":
