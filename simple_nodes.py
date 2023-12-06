@@ -44,6 +44,11 @@ def remainder_workflow():
     remainder_value = remainder(23, 10)
     return remainder_value
 
+@Workflow("remainder_workflow")
+def remainder_workflow_with_settings(a, b):
+    remainder_value = remainder(a, b)
+    return remainder_value
+
 
 @Node("class_example")
 class ClassExample:

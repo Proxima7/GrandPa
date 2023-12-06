@@ -347,7 +347,7 @@ class TemplateParser:
                 sync_objects = self.init_sync_classes(manager, kwarg_node, sync_objects)
             return sync_objects
 
-    def __call__(self, workflow):
+    def __call__(self, workflow, settings=None):
         """
         Runs a workflow. Returns either the result of the final node or the final node itself, depending on the
         workflow template. Also initialises the multiprocessing manager and its processes.
@@ -357,9 +357,11 @@ class TemplateParser:
         Returns:
             result: Result of the final node in the workflow.
         """
+        if settings is None:
+            settings = {}
         manager = multiprocessing.Manager()
         self.init_multiprocessing_manager(manager)
-        final_node = workflow()
+        final_node = workflow(**settings)
         sync_objects = self.init_sync_classes(manager, final_node)
         pickled_workflow = dill.dumps(final_node)
         self.multiprocessing_manager.start_processes(
