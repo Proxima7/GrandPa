@@ -47,6 +47,22 @@ class Node:
             call_func = getattr(self.executable_func, call_method)
             return call_func(*args, **kwargs)
 
+    def __getattribute__(self, item):
+        """
+        Used to get attributes from the executable_func. Especially important if the executable_func is a class.
+        Args:
+            item: Attribute to get.
+
+        Returns:
+            The attribute from the executable_func.
+        """
+        # Using object.__getattribute__ to avoid infinite recursion
+        if item != 'executable_func' and item != '__call__' \
+                and hasattr(object.__getattribute__(self, 'executable_func'), item):
+            return getattr(object.__getattribute__(self, 'executable_func'), item)
+        else:
+            return object.__getattribute__(self, item)
+
     def __getattr__(self, item):
         """
         Used to get attributes from the executable_func. Especially important if the executable_func is a class.
@@ -57,6 +73,34 @@ class Node:
             The attribute from the executable_func.
         """
         return getattr(self.executable_func, item)
+
+    def __len__(self):
+        """
+        Returns:
+            The length of the executable_func.
+        """
+        return len(self.executable_func)
+
+    def __getitem__(self, item):
+        """
+        Returns:
+            The item from the executable_func.
+        """
+        return self.executable_func[item]
+
+    def __next__(self):
+        """
+        Returns:
+            The next item from the executable_func.
+        """
+        return next(self.executable_func)
+
+    def __iter__(self):
+        """
+        Returns:
+            An iterator for the executable_func.
+        """
+        return iter(self.executable_func)
 
     def _finish_tasks_for_kwargs(self, kwargs: dict):
         """

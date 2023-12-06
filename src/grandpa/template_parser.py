@@ -143,6 +143,7 @@ class TemplateParser:
         for key, req_kwarg_node in required_kwarg_nodes.items():
             call_kwargs[key] = self.router(*req_kwarg_node)
         init_cls = node.cls(*call_args, **call_kwargs)
+        init_cls.__grandpa_node_address__ = node.name
         return init_cls, "initialised_cls"
 
     def __init_node_cls_call(self, arg_nodes, kwarg_nodes, node, sync_objects):
