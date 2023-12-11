@@ -223,12 +223,13 @@ class GeneratorNode(Node):
         required_arg_nodes: list,
         required_kwarg_nodes: dict,
         target_address: str,
-        max_queue_size=15
+        queue_size: int
     ):
         super().__init__(name, router, executable_func, call_args, call_kwargs, required_arg_nodes,
                          required_kwarg_nodes)
         self.target_address = target_address
-        self.queue = Queue(maxsize=max_queue_size)
+        self.queue_size = queue_size
+        self.queue = Queue(maxsize=queue_size)
         self.worker_thread = threading.Thread(target=self._fill_queue)
         self.worker_thread.daemon = True
         self.worker_thread.start()
@@ -242,40 +243,15 @@ class GeneratorNode(Node):
         """
 
         if call_method is None:
-            # args = self._load_args(args)
-            # kwargs = self._load_kwargs(kwargs)
-            # self._finish_tasks_for_args(args)
-            # self._finish_tasks_for_kwargs(kwargs)
-            # args.extend(self.call_args)
-            # kwargs.update(self.call_kwargs)
-
-            # batch = []
-            # for i in range(kwargs["return_count"]):
-            #     while self.queue.empty():
-            #         time.sleep(0.01)
-            #
-            #     print("Queue: ", self.queue.queue)
-            #     batch.append(self.queue.get())
-            # return batch
-
             while self.queue.empty():
                 time.sleep(0.01)
             return self.queue.get()
-
-
-
-            # else:
-            #     time.sleep(0.2)
-            #     if not self.queue.empty():
-            #         return self.queue.get()
-            #     print("Empty queue")
-            #     return None
 
         else:
             call_func = getattr(self.executable_func, call_method)
             return call_func(*args, **kwargs)
 
-    def _fill_queue(self): #, *args, **kwargs):
+    def _fill_queue(self):
         """
             Main execution method for Node. Will first load all required arguments and keyword arguments asynchronously,
             then run the function or class it wraps.
@@ -286,32 +262,7 @@ class GeneratorNode(Node):
                 None, but puts result into a queue
         """
         while True:
-            task_id = self.switch.add_task(self.target_address)#, *args, **kwargs)
+            task_id = self.switch.add_task(self.target_address)
             self.queue.put(self.switch.get_task_result(task_id))
 
 
-
-    #
-    # def fill_queue_start_tasks(self, call_method: str = None, *args, **kwargs):
-    #     """
-    #     Main execution method for Node. Will first load all required arguments and keyword arguments asynchronously,
-    #     then run the function or class it wraps.
-    #     Args:
-    #         call_method: (Not implemented) Specify a different function to run (only for wrapped classes)
-    #
-    #     Returns:
-    #         The result of the function or class it wraps.
-    #     """
-    #
-    #     if call_method is None:
-    #         while True:
-    #             self.tasks.append(self.switch.add_task(self.target_address, *args, **kwargs))
-    #
-    # def fill_queue_results(self):
-    #     while True:
-    #         if len(self.tasks) > 0:
-    #             for task in self.tasks:
-    #                 self.queue.put(self.switch.get_task_result(task))
-    #                 del task
-    #         else:
-    #             time.sleep(0.1)

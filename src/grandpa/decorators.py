@@ -24,20 +24,22 @@ class Node:
         Returns:
             NodeTemplate if f is a class, FuncTemplate if f is a function, else raises RuntimeError
         """
+        max_queue_size = 0
         if hasattr(self, "__grandpa_task_node__"):
             grandpa_task_node = True
         else:
             grandpa_task_node = False
-        if hasattr(self, "__grandpa_generator_node__"):
+        if hasattr(self, "__grandpa_generator_node__") and hasattr(self, "__max_queue_size__"):
             grandpa_generator_node = True
+            max_queue_size = self.__max_queue_size__
         else:
             grandpa_generator_node = False
         if inspect.isclass(f):
             f.__decorated_by_grandpa_node__ = True
             f.__grandpa_node_address__ = self.name
-            return NodeTemplate(f, self.name, self.pass_task_executor, grandpa_task_node=grandpa_task_node, grandpa_generator_node=grandpa_generator_node)
+            return NodeTemplate(f, self.name, self.pass_task_executor, grandpa_task_node=grandpa_task_node, grandpa_generator_node=grandpa_generator_node, max_queue_size=max_queue_size)
         elif inspect.isfunction(f):
-            return FuncTemplate(f, self.name, self.pass_task_executor, grandpa_task_node=grandpa_task_node, grandpa_generator_node=grandpa_generator_node)
+            return FuncTemplate(f, self.name, self.pass_task_executor, grandpa_task_node=grandpa_task_node, grandpa_generator_node=grandpa_generator_node, max_queue_size=max_queue_size)
         else:
             raise RuntimeError(
                 "Node decorator can only be used on classes or functions."
@@ -87,22 +89,11 @@ class GeneratorNode:
         """
         underlying_node = Node(name=self.name, pass_task_executor=False, *self.args, **self.kwargs)
         underlying_node.__grandpa_generator_node__ = True
+        if "max_queue_size" in self.kwargs:
+            underlying_node.__max_queue_size__ = self.kwargs["max_queue_size"]
+        else:
+            underlying_node.__max_queue_size__ = 50
         return underlying_node(f)
-
-        # if type(f) in [NodeTemplate, FuncTemplate]:
-        #     return GeneratorNodeTemplate(f, self.name, *self.args, **self.kwargs)
-        #
-        # if inspect.isclass(f):
-        #     f.__decorated_by_grandpa_node__ = True
-        #     f.__grandpa_node_address__ = self.name
-        #     wrapped_node = NodeTemplate(f, self.name, pass_task_executor=False, grandpa_task_node=False)
-        # elif inspect.isfunction(f):
-        #     wrapped_node = FuncTemplate(f, self.name, pass_task_executor=False, grandpa_task_node=False)
-        # else:
-        #     raise RuntimeError(
-        #         "Node decorator can only be used on classes or functions."
-        #     )
-        # return GeneratorNodeTemplate(wrapped_node, self.name, *self.args, **self.kwargs)
 
 
 class Component:

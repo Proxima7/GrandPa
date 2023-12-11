@@ -121,7 +121,7 @@ class InitialisedNodeTemplate:
     Template to wrap a class object. This is used to indicate that the class should be initialised with the given args
     and kwargs.
     """
-    def __init__(self, node_template, grandpa_task_node: bool = False, grandpa_generator_node: bool = False):
+    def __init__(self, node_template, grandpa_task_node: bool = False, grandpa_generator_node: bool = False, max_queue_size: int = 50):
         self.node_template = node_template
         self.required_arg_nodes = []
         self.call_args = []
@@ -130,6 +130,7 @@ class InitialisedNodeTemplate:
         self.pass_task_executor = False
         self.grandpa_task_node = grandpa_task_node
         self.grandpa_generator_node = grandpa_generator_node
+        self.max_queue_size = max_queue_size
 
     def __call__(self, *args, **kwargs) -> ResultWrapper:
         """
@@ -149,7 +150,7 @@ class InitialisedNodeTemplate:
         loc_node_temp.call_args = self.node_template.call_args
         loc_node_temp.required_kwarg_nodes = self.node_template.required_kwarg_nodes
         loc_node_temp.call_kwargs = self.node_template.call_kwargs
-        loc_init_node_temp = InitialisedNodeTemplate(loc_node_temp, self.grandpa_task_node, self.grandpa_generator_node)
+        loc_init_node_temp = InitialisedNodeTemplate(loc_node_temp, self.grandpa_task_node, self.grandpa_generator_node, self.max_queue_size)
         register_params(loc_init_node_temp, args, kwargs)
         return ResultWrapper(loc_init_node_temp)
 
@@ -158,7 +159,7 @@ class NodeTemplate:
     """
     Template to wrap a class. This is used to indicate that the class is a Node and can be instantiated.
     """
-    def __init__(self, cls, name: str, pass_task_executor: bool = False, grandpa_task_node: bool = False, grandpa_generator_node: bool = False):
+    def __init__(self, cls, name: str, pass_task_executor: bool = False, grandpa_task_node: bool = False, grandpa_generator_node: bool = False, max_queue_size: int = 50):
         self.cls = cls
         self.name = name
         self.required_arg_nodes = []
@@ -168,6 +169,7 @@ class NodeTemplate:
         self.pass_task_executor = pass_task_executor
         self.grandpa_task_node = grandpa_task_node
         self.grandpa_generator_node = grandpa_generator_node
+        self.max_queue_size = max_queue_size
 
     def __call__(self, *args, **kwargs) -> InitialisedNodeTemplate:
         """
@@ -182,31 +184,9 @@ class NodeTemplate:
             InitialisedNodeTemplate indicating the instantiated class.
         """
         loc_id = random.randint(0, 1000000)
-        loc_node_temp = NodeTemplate(self.cls, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node, self.grandpa_generator_node)
+        loc_node_temp = NodeTemplate(self.cls, self.name + str(loc_id), self.pass_task_executor, self.grandpa_task_node, self.grandpa_generator_node, self.max_queue_size)
         register_params(loc_node_temp, args, kwargs)
-        return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node, grandpa_generator_node=self.grandpa_generator_node)
-
-
-# class GeneratorNodeTemplate:
-#     """
-#         Template to wrap a node and add a queue for output.
-#         """
-#     def __init__(self, node: callable, name: str, cache_size=10, *args, **kwargs):
-#         self.node = node
-#         self.name = name
-#         self.cache_size = cache_size
-#         self.queue = Queue(maxsize=cache_size)
-#         self.fill_queue(*args, **kwargs)
-#
-#     def __call__(self):
-#         if not self.queue.empty():
-#             result = self.queue.get()
-#             return result
-#
-#     def fill_queue(self, *args, **kwargs):
-#         while True:
-#             self.queue.put(self.node(*args, **kwargs))
-
+        return InitialisedNodeTemplate(loc_node_temp, grandpa_task_node=self.grandpa_task_node, grandpa_generator_node=self.grandpa_generator_node, max_queue_size = self.max_queue_size)
 
 
 class ComponentTemplate:

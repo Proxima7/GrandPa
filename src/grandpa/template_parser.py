@@ -107,7 +107,8 @@ class TemplateParser:
                 call_kwargs,
                 required_arg_nodes,
                 required_kwarg_nodes,
-                t_node.address
+                t_node.address,
+                queue_size=node.max_queue_size
             )
         else:
             f_node = Node(
@@ -208,6 +209,7 @@ class TemplateParser:
                 required_arg_nodes,
                 required_kwarg_nodes,
                 t_node.address,
+                queue_size=node.max_queue_size
             )
         else:
             f_node = Node(
