@@ -1,4 +1,5 @@
 import multiprocessing
+from multiprocessing import Value
 import os
 import queue
 import random
@@ -50,6 +51,7 @@ class MultiprocessingManager:
         self.finished_thread_tasks = {}
         self.router = None
         self.thread_queue_in = None
+        self.run = Value('i', True)
 
     def start_processes(self, start_func: callable, *args, **kwargs):
         """
@@ -83,7 +85,7 @@ class MultiprocessingManager:
         """
         self.start_threads()
         start_func(*args, **kwargs)
-        while True:
+        while self.run == Value('i', True):
             self.process_in_queue()
 
     def start_threads(self):
@@ -104,7 +106,7 @@ class MultiprocessingManager:
         Returns:
             None, processes the thread_queue_in until the thread is terminated.
         """
-        while True:
+        while self.run == Value('i', True):
             self.process_thread_queue()
 
     def process_in_queue(self):
@@ -113,23 +115,26 @@ class MultiprocessingManager:
         Returns:
             None, sets the result of the task in the finished_tasks dict.
         """
-        task = self.task_queue_in.get()
-        if self.thread_queue_in.qsize() < self.threads_per_process:
-            self.thread_queue_in.put(task)
-        else:
-            if type(task.target) == str:
-                if "call_method" in task.kwargs:
-                    call_method = task.kwargs["call_method"]
-                    del task.kwargs["call_method"]
+        try:
+            task = self.task_queue_in.get(block=True, timeout=2.0)
+            if self.thread_queue_in.qsize() < self.threads_per_process:
+                self.thread_queue_in.put(task)
+            else:
+                if type(task.target) == str:
+                    if "call_method" in task.kwargs:
+                        call_method = task.kwargs["call_method"]
+                        del task.kwargs["call_method"]
+                    else:
+                        call_method = None
+                    result = self.router(task.target, call_method=call_method, call_args=task.args, call_kwargs=task.kwargs)
                 else:
-                    call_method = None
-                result = self.router(task.target, call_method=call_method, call_args=task.args, call_kwargs=task.kwargs)
-            else:
-                result = task.target(*task.args, **task.kwargs)
-            if task.origin == os.getpid():
-                self.finished_thread_tasks[task.task_id] = result
-            else:
-                self.finished_tasks[task.task_id] = result
+                    result = task.target(*task.args, **task.kwargs)
+                if task.origin == os.getpid():
+                    self.finished_thread_tasks[task.task_id] = result
+                else:
+                    self.finished_tasks[task.task_id] = result
+        except queue.Empty:
+            return None
 
     def process_thread_queue(self):
         """
@@ -221,3 +226,6 @@ class MultiprocessingManager:
                 self.process_thread_queue()
             else:
                 time.sleep(0.01)
+
+    def stop(self):
+        self.run = Value('i', False)

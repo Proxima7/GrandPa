@@ -373,6 +373,7 @@ class TemplateParser:
         if node_type == "Node":
             return self.router(final_node, True)
         elif node_type == "Result":
+            self.multiprocessing_manager.stop()
             return self.router(final_node, False)
         else:
             raise RuntimeError(f"Unexpected node type: {node_type}")
